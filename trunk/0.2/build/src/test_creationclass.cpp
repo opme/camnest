@@ -26,7 +26,7 @@
 
 #include <iostream>
 #include <stdio.h>
-QPointF p1, p2;
+//QPointFWithParent p1, p2;
 
 /**
  * Default constructor.
@@ -37,13 +37,24 @@ Test_CreationClass::Test_CreationClass() {
       inBlock=false;
 	  partPath.moveTo( 0,0);
 	  partPath.setFillRule(Qt::WindingFill);
+	 // QPointFWithParent a(20,20,QPointFWithParent::Arc);
+	 // qDebug() <<a.parentType;
 }
 
+QPointFWithParent::QPointFWithParent(qreal x, qreal y, qreal cx,qreal cy,qreal radius,QPointFWithParent::Types type,bool cw):QPointF(){
+	 setX(x);
+	 setY(y); 
+	 parentType=type;
+	 centerX=cx;
+	 centerY=cy;
+	 cWise=cw;
+	 parentRadius=radius;
+	}
 /**
  * Sample implementation of the method which handles line entities.
  */
  
-  QPainterPath Test_CreationClass::drawLine( const QPointF & startPoint, const QPointF & endPoint) {
+  QPainterPath Test_CreationClass::drawLine( const QPointFWithParent & startPoint, const QPointFWithParent & endPoint) {
      QPainterPath lineEntity=QPainterPath ();
 	 lineEntity.moveTo(startPoint);
 	 lineEntity.lineTo(endPoint);
@@ -54,37 +65,31 @@ void Test_CreationClass::addLine(const DL_LineData& data) {
 
 	 if (inBlock) return;
 	 QGraphicsLineItem *line = new QGraphicsLineItem (data.x1, data.y1, data.x2, data.y2);
-	 p1= QPointF ( data.x1, data.y1);
-	 p2= QPointF ( data.x2, data.y2);
+	 QPointFWithParent p1( data.x1, data.y1);
+	 QPointFWithParent p2( data.x2, data.y2);
 	 /// if a line ending= it's begining have to skip it (may occur in some poorly coded cad)
 	 if ( p1==p2 ) return;
-	 /// store the line in the paths list
-	 partPathsList.append(drawLine(p1,p2));
+	 
+	 QPainterPath lineTemp=drawLine(p1,p2);
+	 /// store the line in the paths list if not already present, some CAD frawinfg contains repeated entities
+	 if (!partPathsList.contains(lineTemp)){
+		 partPathsList.append(lineTemp);		 
+		 }
+	 else{
+		qDebug () << "line already present skipping...";
+		return;
+		}
+	 
 	 pointsPathList.append( p1);
 	 pointsPathList.append( p2);
 	 
-	// qDebug() << pointsList.count(p1);
-	// qDebug() << pointsList.count(p2);
-	// if (pointsList.contains(p1) ){
-	    // qDebug() << "the point "<< p1<< "exists at " << pointsList.indexOf(p1);
-		 /// stroe the preivous point entitiy index and the current one
-		// commonList<< (pointsList.indexOf(p1))/2;
-		// commonList<< (pointsList.size())/2;
-		 //partOutline.moveTo(p1);
-		// }	
-	//if (pointsList.contains(p2)) {
-	 //    qDebug() << "the point"<< p2 <<"exists at "<< pointsList.indexOf(p2);
-		 /// stroe the preivous point entitiy index and the current one
-		// commonList<< (pointsList.indexOf(p2))%2;
-		// commonList<< (pointsList.size())%2;
-		 //partOutline.moveTo(p2);
-		//} 
 	 pointsList.append( p1);
 	 pointsList.append( p2);
+	 
 	 partPath.moveTo( p1);
 	 partPath.lineTo( p2);
 	 //QList<QGraphicsItem *> colidesWith= line->collidingItems ( Qt::IntersectsItemShape );
-	// qDebug()<< line->collidesWithPath(partPath);
+	 // qDebug()<< line->collidesWithPath(partPath);
 	 partBoundingRect=partPath.controlPointRect();
 	 //qDebug() << "intersect with " << colidesWith.size();
 	 linesList.append(line);
@@ -92,9 +97,10 @@ void Test_CreationClass::addLine(const DL_LineData& data) {
 	 //  qDebug() << "line "<<data.x1<< data.y1<< data.x2<< data.y2;
     }
 	
-	QPainterPath Test_CreationClass::drawArc( const QPointF & startPoint, const QRectF & rectangle, qreal startAngle, qreal sweepAngle) {
+	QPainterPath Test_CreationClass::drawArc( const QPointFWithParent & startPoint, const QRectF & rectangle, qreal startAngle, qreal sweepAngle) {
      QPainterPath arcEntity=QPainterPath ();
 	 arcEntity.moveTo(startPoint);
+	  /// Clockwise arcs can be specified using negative angles(selon doc Qt) fabs or qAbs ?
 	 arcEntity.arcTo(rectangle,-(startAngle),-qAbs(sweepAngle));
 	 return arcEntity;	 
     }
@@ -102,54 +108,54 @@ void Test_CreationClass::addLine(const DL_LineData& data) {
 void Test_CreationClass::addArc(const DL_ArcData& data) {
 
 	 if (inBlock) return;	
-	 double teta1=data.angle1,teta2=data.angle2;
-	
+	 double teta1=data.angle1,teta2=data.angle2,sweep;
+	 bool cw=true;
+	// qDebug()<<teta1<<teta2;
+	 //if teta1==0 teta1=360;
 	 if (teta1>teta2) { /// have to go clockwise or swap values
-	     //if (teta2==0) teta2=360; // teta2=data.angle1;// teta1=data.angle2;  //if (teta2==0) teta2=360;
 	     teta2=360+teta2;
-	  }
-	  
-	 QPointF p1(data.cx + cos((teta1)*M_PI/180) * data.radius,data.cy + sin((teta1)*M_PI/180) * data.radius);
-	 QPointF p2(data.cx + cos((teta2)*M_PI/180) * data.radius,data.cy + sin((teta2)*M_PI/180) * data.radius);
-	 QRectF boundingRect (data.cx-data.radius, data.cy-data.radius,2*data.radius,2*data.radius);
+		}
+		 //sweep=data.angle2-data.angle1;
+		 // if (sweep>0) {qDebug()<<"counter clockwise arc";cw=false;}
+		 //else {qDebug()<<"clockWise arc";cw=true;}
 
-	 partPathsList.append(drawArc(p1,boundingRect,teta1,teta1-teta2));
+		/**IMPORTANT NOTE:As we always start from p1 (our start point) we have to assign clockwaise 
+		to P1 and counterClockwise to P2 this way when we organsie the entities and start from p2 instead 
+		from p1 the G2/G3 codes are coretly assigned!
+		*/
+	 QPointFWithParent p1(data.cx + cos((teta1)*M_PI/180) * data.radius,data.cy + sin((teta1)*M_PI/180) * data.radius,data.cx ,data.cy ,data.radius,QPointFWithParent::Arc,cw);
+	 QPointFWithParent p2(data.cx + cos((teta2)*M_PI/180) * data.radius,data.cy + sin((teta2)*M_PI/180) * data.radius,data.cx ,data.cy ,data.radius,QPointFWithParent::Arc,!cw);
+	 QRectF boundingRect(data.cx-data.radius, data.cy-data.radius,2*data.radius,2*data.radius);
+
+	 
+	 QPainterPath arcTemp=drawArc(p1,boundingRect,teta1,teta1-teta2);
+	 /// store the line in the paths list if not already present, some CAD frawinfg contains repeated entities
+	 if (!partPathsList.contains(arcTemp)){
+		 partPathsList.append(arcTemp);		 
+		 }
+	 else{
+		qDebug () << "Arc already present skipping...";
+		return;
+		}
+
 	 pointsPathList.append(p1);
 	 pointsPathList.append(p2);
-	 QPainterPath arcTemp;
-	
-	 /// move to the extrimity point first without drawing 
+	 
 	 partPath.moveTo(p1);
-	 arcTemp.moveTo(p1);
-	 //qDebug() << "Arc of R= "<< data.radius<<" starts at:" <<p1<<"ends at: "<<p2<< "and angles"<<data.angle1<<" , "<< data.angle2<< teta1<<teta2;;//artPath.currentPosition();	
-	 pointsArcsList.append(p1);//.append(&p1);
-	  //boundingRect.moveCenter(QPointF(data.cx,data.cy));
-	  /// Clockwise arcs can be specified using negative angles(selon doc Qt) fabs or qAbs ?
-	   partPath.arcTo(boundingRect,-(teta1),-qAbs(teta1-teta2));
-	   arcTemp.arcTo(boundingRect,-(teta1),-qAbs(teta1-teta2));
-	   arcsPathsList.append(arcTemp);
-	 // qDebug() <<"differnece in the drawn  arc"<< p2-partPath.currentPosition();
-	 // qDebug() << "Arc ends at:" <<partPath.currentPosition();
-	 pointsArcsList.append(p2);//partPath.currentPosition());
-	  //radiusArcsList.append( data.radius );
-	 //partPath.closeSubpath();
-	 //	 qDebug() << "Arc "<<data.cx<< data.cy<< teta1<< teta2<< data.radius ;
-	// QGraphicsEllipseItem *ellipse = new QGraphicsEllipseItem (data.cx, data.cy, data.radius,data.radius);
-	 //ellipse->setStartAngle(data.angle1*16);
-	// ellipse->setSpanAngle(data.angle2*16);
-	// ellipsesList.append(ellipse);
-	 //qDebug() << "last position is :" <<partPath.currentPosition();
+	 partPath.arcTo(boundingRect,-(teta1),-qAbs(teta1-teta2));
+
 
 }
 
 QPainterPath Test_CreationClass::drawCircle( const QPointF &centerPoint, const qreal radius) {
      QPainterPath circleEntity=QPainterPath ();
 	 QPointF touchCircle(centerPoint.x()+radius,centerPoint.y());
-	// circleEntity.moveTo(centerPoint);
+	 // circleEntity.moveTo(centerPoint);
 	 pointsCircleList.append(centerPoint);
 	 /// move by radius to touch the circle
 	 //circleEntity.moveTo(touchCircle);
 	 pointsCircleList.append(touchCircle);
+	 radiusCircleList.append(radius);
 	 circleEntity.addEllipse(centerPoint,radius,radius);
 	 return circleEntity; 
     }
@@ -203,10 +209,14 @@ void Test_CreationClass::addBlock(const DL_BlockData& data) {
 /**
  * Sample implementation of the method which handles polyline entities.
  */
- 
- ///FIXME : use the built in DXF SEQEND to draw polylines
+
+  
+ /// see 14- 249.dxf for a polyline in a part
 void Test_CreationClass::addPolyline(const DL_PolylineData& data) {
        if (inBlock) return;
+	    
+     ///FIXME : use the built in DXF SEQEND to draw polylines
+	   
      printf("Adding a POLYLINE \n");
      //printf("flags: %d\n", (int)data.flags);
      //printAttributes();

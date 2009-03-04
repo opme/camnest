@@ -9,6 +9,49 @@
 #include "test_creationclass.h"
   //
   
+  /**
+	 the class GCode implement some essential functions along with some optional one:
+	 -Add Header
+	 -Add line
+	 -Add arc
+	 -Add circle
+	 -Add line number
+	 -Add comment
+	 -Add EOF
+	 -Write to file
+	 
+  */
+  
+  class GCode : public QTextStream{
+  
+	 public:
+	 GCode( QFile *file);
+	 void writeHeader();
+	 void writeClosedLoop(QList<QPointFWithParent > closedLoop);
+	 void writeCircleLoop(QList<QPointF> circleLoop, QList<qreal>  circlesRadius);
+	 void writeEnd();
+	 void comment(QString comment);
+	 void addLineNumber ();
+	 
+	 void home();
+	 void rapidMove (qreal X, qreal Y,qreal Z);
+	 void feedRateMove (qreal X,qreal Y,qreal Z);
+	 
+	 void ArcCut (qreal X,qreal Y,qreal Z,qreal I,qreal J,qreal radius,bool cw=true);
+	 
+	 void appendCode (QString code, QString value="");
+	 void appendNumCode ( QString code, qreal value);
+	 
+	 
+	 void  cartidgeReturn() { *this<< endl;}
+	   //private:
+	 QString fileName;
+	 int lineNumber;
+	 qreal lastX, lastY,lastZ ,homeX, homeY, homeZ;
+	 QString lastgcode;
+	 int lastfeed;	 
+    };
+  
    class SheetMetal: public QWidget  /// could be a Qview directly ???
  {
      Q_OBJECT
@@ -54,23 +97,28 @@ public:
 	 void createToolBars();
 	 void createMenus();
 	 void addArc(double cx,double cy,double radius,double teta1,double teta2);
-	 QList <QList<QPointF > > commonPoints(QList <QPointF > pointsList,QList <QPointF > arcsList,QList <QPainterPath > arcsPathsList);
-	 QList <QList<QPointF > > organiseEntities(QList <QPointF > pointsList,QList <QPainterPath > partPathsList);
+	 
+	 QList <QList<QPointFWithParent  > > organiseEntities(QList <QPointFWithParent > pointsList,QList <QPainterPath > partPathsList);
 	 QList <QPointF >  addCircles(QList <QPointF > circlePointsList,QList <QPainterPath > circlesPathsList);
 	 
-	 QList <QList<QPointF > > linkLines (QList <QList<QPointF > >  linesFinal);
-	 
+	/// de"precated version of the algo to organsie the points 
+	 QList <QList<QPointF > > commonPoints(QList <QPointF > pointsList,QList <QPointF > arcsList,QList <QPainterPath > arcsPathsList);
 	 SheetMetal *sheet;
 	 
+ 
    private:
      QAction *aboutAction;
      QAction *openAction;
      QAction *clearAction;   
+	 QAction *clearPathAction; 
      QAction *mirrorAction;
 	 QAction *yMirror;
 	 QAction *rotateAction; 
      QAction *generateAction;
+	 QAction *saveAction;
+	 
      QMenu *fileMenu;
+	 
      QToolBar *fileToolBar;
      QToolBar *editToolBar;
 	 
@@ -78,9 +126,11 @@ public:
      void about();
 	 void readDxfFile();
 	 void openFile();
+	 bool saveFile();
 	 void clearScene();
 	 void rotateParts();
 	 void generatePath();
+	 void clearGeneratedPath();
   };
   
   
@@ -102,7 +152,10 @@ class Part: public QObject,public QGraphicsItem {
 	 
  };
   
-  
+     double getAngle(QPointF start_point,QPointF end_point);
+	 QPointF ArrowWing1(double line_angle,QPointF end_point);
+	 QPointF ArrowWing2(double line_angle,QPointF end_point);
+	
 
   
   #endif 

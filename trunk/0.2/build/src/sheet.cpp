@@ -1,12 +1,17 @@
 
  #include "sheet.h"
  //#define RAND_MAX 255
-
+#define ARROW_LENGHT 10
   DL_Dxf* dxf;
   Test_CreationClass* creationClass;
   Sheet *scene;
   QGraphicsView *view;
- QPainterPath path2;
+  QPainterPath path2;
+  
+  QGraphicsItem *generatedPath;
+  QGraphicsItem  *toolPathItem;
+  QGraphicsItem  *contoursPathItem;
+  
  //QPainterPathStroker *partOutline2;
    QList<QGraphicsItem *> selectParts;
  int mode=0;
@@ -20,10 +25,222 @@
  QList <QPointF > linesListNew;
  /// havn't to be pointer reference as they entities are deleted after being read
  QList<Test_CreationClass *> creationClassList;
+ 
+  /// stiores the organised entities Start/end points.
+  QList <QList<QPointFWithParent  > > gCodePoints;
+  /// stiores the circles centers/radius start & end points bieng the attaque points
+   QList<QPointF > gCodeCirclesPoints;
+   QList<qreal > gCodeCirclesRadius;
+  /// the first closed loop in a piece
+ QList<QPointF > closedLoop;
+ QPen toolPen(Qt::blue);
+ QPen contourPen(Qt::red);
 
+/// See http://www.linuxcnc.org/handbook/gcode/g-code.html for more infos about G-code
+
+	void GCode::writeHeader() {
+	 //setFieldWidth(2);
+	 setRealNumberPrecision(6);
+	 //QDateTime date;
+	 //QString dateString (date.toString
+	 //("dd.MM.yyyy"));
+	 //qDebug()<<dateString;
+	 
+	 //*this << dateString <<endl;
+	 //*this <<"(program start)"<<endl;
+	 comment ("Program generated from :" + this->fileName) ; //FIXME the operator << can't deal with pointers !!s
+	 comment("program start");
+	 comment("Units = millimeters");
+	 appendCode ("G21");
+	 comment("Absolute coordinates");
+	 appendCode (" G90");	 
+	 comment(" feed per minute mode ");
+	 appendCode ("G94");
+	 comment("Homing");
+	 home();
+	}
+	
+	
+	
+	/**
+G1 X0.0 Y1.0 F20.0 ----go to X1.0, Y0.0 at a feed rate of 20 inches/minute 
+G2 X1.0 Y0.0 I0.0 J-1.0 ----go in an arc from X0.0, Y1.0 to X1.0 Y0.0, with the center of the arc at X0.0, Y0.0 
+G2 for a clockwise Arc , G3 for an anticlockWise one
+*/
+	void GCode::writeClosedLoop(QList<QPointFWithParent > closedLoop){
+	 int pos=0;
+	 ///the end point of an arc
+	 QPointFWithParent  endPoint(0,0);
+	 /// a point in a line entinty weiither the start or end (becomle the start in a arc one)
+	 QPointFWithParent point(0,0);
+	 ///FIXME: a problem with qlist dimension size pos+2 to solve
+	 while (pos < closedLoop.size()) {
+		 point=closedLoop.at(pos);
+
+			 if (point.parentType==QPointFWithParent::Arc) {
+				 endPoint=closedLoop.at(pos+1);
+				 /// go to the first point at rapid move
+				 if (pos==0) {
+					 rapidMove( point.x(),point.y(),0);
+					}
+				 else{
+					 feedRateMove(point.x(),point.y(),0);
+					}
+				 ArcCut(endPoint.x(),endPoint.y(),0, (endPoint.centerX-point.x()), (endPoint.centerY-point.y()),0,endPoint.cWise);
+				 ///ArcCut(endPoint.x(),endPoint.y(),0, (endPoint.centerX-point.x()), (endPoint.centerY-point.y()),endPoint.parentRadius);
+				 pos=pos+2;
+				 //qDebug()<<"dealing with an arc rad="<<endPoint.parentRadius<<"center="<<endPoint.centerX<<endPoint.centerY;
+				 /// Implment opertao = in WIthParent QPointF & QPointF::operator= ( const QPointF & point )
+				 point.setX(endPoint.x());
+				 point.setY(endPoint.y());
+				}
+			 else {
+			     /// go to the first point at rapid move
+				 if (pos==0) {
+					 rapidMove( point.x(),point.y(),0);
+					}
+				 else{
+					 feedRateMove(point.x(),point.y(),0);
+					}
+				 pos++;
+			    }
+		 lastX=point.x();
+		 lastY=point.y();
+		 //qDebug()<<"last point: ("<<lastX<<" , " << lastY<<")" ;
+		}	
+	}	
+	
+	 QPointF circleCenter, attackPoint;
+	 qreal radius;
+
+	void GCode::writeCircleLoop(QList<QPointF> circleLoop,QList<qreal> circlesRadius){
+	 int pos=0;
+	 while (pos <= circleLoop.size()-2){
+	 /// Todo maybe should replace regular QPOINTF with QPointFWithParent and get rid of Qlist circles attackpoint
+		 circleCenter=circleLoop.at(pos);
+		 attackPoint=circleLoop.at(pos+1);
+		 radius=circlesRadius.at(pos/2);
+		 /// go to the center with G0
+		 rapidMove( circleCenter.x(),circleCenter.y(),0);
+		 ///start cutting till being onthe circle
+		 feedRateMove( attackPoint.x(),attackPoint.y(),0);	
+		 /// now that we are on the circle cut it
+		 ArcCut(attackPoint.x(),attackPoint.y(),0,circleCenter.x()-attackPoint.x(),circleCenter.y()-attackPoint.y(),0);
+		 pos=pos+2;
+		}
+	
+	}
+	 void GCode::ArcCut (qreal X,qreal Y,qreal Z,qreal I,qreal J,qreal radius,bool cw){
+	 ///add counterClockwise case handle
+	 if (!cw){
+		 appendCode("G03");
+		} 
+	 else{
+		 appendCode("G02");
+		}
+	 appendNumCode ("X",X);
+	 appendNumCode ("Y",Y);
+	 if (radius==0) {
+		 appendNumCode ("I",I);
+		 appendNumCode ("J",J);
+	    }
+		else{
+		 appendNumCode ("R",radius);
+		}
+	 cartidgeReturn();
+	}
+	
+	
+	void GCode::feedRateMove (qreal X,qreal Y,qreal Z){
+	 if (!qFuzzyCompare(X,lastX) || !qFuzzyCompare(Y,lastY) ) {
+		 appendCode("G01");
+		 if (X!=lastX) 	 appendNumCode ("X",X);
+		 if (Y!=lastY) 	 appendNumCode ("Y",Y);	 
+         ///appendNumCode ("Z",Z);	 
+		 cartidgeReturn();
+		}
+	}
+	
+	
+	void GCode::rapidMove(qreal X,qreal Y,qreal Z){
+	 /// TIODO: Replace qFuzzyColpare with a tolerance to be set by the user
+	if (!qFuzzyCompare(X,lastX)  || !qFuzzyCompare(Y,lastY)) {
+		 appendCode("G00");
+		 ///TODO: replace with line code and group X & Y
+		 if (X!=lastX) 	 appendNumCode ("X",X);
+		 if (Y!=lastY) 	 appendNumCode ("Y",Y);	 	
+		 ///appendNumCode ("Z",Z); 
+		 cartidgeReturn();
+		}
+	}	
+	
+	void GCode::comment(QString comment){
+	 *this <<"( "+comment+" )"<<endl;
+	}
+
+	void GCode::home(){
+	 /// Move the tool to its home position
+	 rapidMove(homeX,homeY,homeZ);
+	}
+	
+	void GCode::addLineNumber (){
+	 *this << "N"<<lineNumber<< " ";
+	 lineNumber=lineNumber+10;
+	}
+	void GCode::appendCode ( QString code, QString value){
+	 addLineNumber();
+	 *this << code+ " "<< value<< " ";
+	}
+	
+	void GCode::appendNumCode ( QString code, double value){	  
+	 *this << code + " "<< value<< " ";	 
+	}
+	
+	void GCode::writeEnd(){
+	 comment("program End");
+	 appendCode ("M2");	
+	}
+	
+	
+	bool MainWindow::saveFile() {
+
+	 QString fileName (QFileDialog::getSaveFileName(this, tr("Save File"),"/media/donnees/SL+TN",tr("Gcode Files (*.nc)")));
+	 QFile file(fileName);
+     if (!file.open(QFile::WriteOnly | QFile::Text)) {
+         QMessageBox::warning(this, tr("CamNest"), tr("Cannot write file %1:\n%2.").arg(fileName).arg(file.errorString()));
+         return false;
+		}
+	 /// Create the Gcode File
+	 GCode partGCode (& file);
+	 partGCode.fileName=fileName;
+	 partGCode.writeHeader();
+	 int i=0;
+	 while (i < gCodePoints.size()){
+		 partGCode.comment("Adding a Loop");
+		 partGCode.comment("Turnin off torch");
+		 partGCode.comment("going to Z home");
+	 	 partGCode.writeClosedLoop( gCodePoints.at(i));
+		 i++;
+	 }
+	 partGCode.writeCircleLoop( gCodeCirclesPoints,gCodeCirclesRadius);
+	 
+	 partGCode.writeEnd();
+	 statusBar()->showMessage(tr("File saved"),4000);
+	 return true;
+	}
  
  
- void MainWindow::openFile() {
+
+  GCode::GCode( QFile *file):QTextStream (file) {
+	 lineNumber=0;
+	 lastX=lastY=lastZ=homeX=homeY=homeZ=0; /// change to Home pos from settings
+	 lastgcode="G90";
+	 ///some stupid cam soft do need the trailing zeros to work like ncplot!!!
+	 setRealNumberNotation(QTextStream::FixedNotation);
+	 ///setRealNumberPrecision (4);
+    }
+	
+    void MainWindow::openFile() {
      QString file = QFileDialog::getOpenFileName(0,"Find Files", "/media/donnees/SL+TN","DXF Files (*.dxf)");
      if (!file.isEmpty()) {
 		 Test_CreationClass* creationClass = new Test_CreationClass();
@@ -52,19 +269,25 @@
 		}
 	}
 
-	void MainWindow::generatePath() {
-	 
+	void MainWindow::generatePath() {	 
 	 if (creationClassList.at(0)!=0){
-		 qDebug()<<"Generating the path";
-		 qDebug()<<"the linked lines list:"<<organiseEntities(creationClassList.at(0)->pointsPathList,creationClassList.at(0)->partPathsList);
-		 qDebug()<<"the circles cut list:"<<addCircles(creationClassList.at(0)->pointsCircleList,creationClassList.at(0)->circlePathsList);
-		
+		 //qDebug()<<"Generating the path"<<creationClassList.at(0)->pointsPathList;
+		 gCodePoints=organiseEntities(creationClassList.at(0)->pointsPathList,creationClassList.at(0)->partPathsList);
+		 //qDebug()<<"the linked lines list:"<<gCodePoints;
+		 gCodeCirclesPoints=addCircles(creationClassList.at(0)->pointsCircleList,creationClassList.at(0)->circlePathsList);
+		 //qDebug()<<"the circles cut list:"<<addCircles(creationClassList.at(0)->pointsCircleList,creationClassList.at(0)->circlePathsList);
+		 gCodeCirclesRadius=creationClassList.at(0)->radiusCircleList;
 		}
      statusBar()->showMessage(tr("Path generated"));
 	}	
+
 	
+    void MainWindow::clearGeneratedPath (){
+		scene->removeItem(toolPathItem);
+		scene->removeItem(contoursPathItem);
+	}
 	
- void MainWindow::rotateParts() {
+    void MainWindow::rotateParts() {
 	 if (!selectParts.isEmpty ()) { 
 	 	 foreach(QGraphicsItem *part,selectParts){
 	 		 part->rotate(90);
@@ -76,7 +299,7 @@
 		}
 	}
 	
-  void MainWindow::clearScene() {
+    void MainWindow::clearScene() {
 	 creationClassList.removeAt(0);
      statusBar()->showMessage(tr("Emptied Scene"));
 	 scene->clear();
@@ -94,56 +317,83 @@
 	 //QGraphicsPathItem arrow(arrowPath);
 	 //arrow.setFlag(QGraphicsItem::ItemIsMovable, false);
 	
-	 int pos=0;
-	 qDebug()<<circlePointsList.size();
+	 int pos=0;double angle;
+	 qDebug()<<"Adding "<<circlePointsList.size()<<" circles";
 	 while (pos<=circlePointsList.size()-2) {	 
 		 /// add the arrrow to indicate the toolpath sens
 		 ///go to the circle center
+		 angle=getAngle(circlePointsList.at(pos),circlePointsList.at(pos+1));// shoukld be +2 but then go oaftre size
 		 toolLoop.lineTo(circlePointsList.at(pos));		
 		 arrowPath.moveTo(circlePointsList.at(pos));
-		 arrowPath.lineTo(circlePointsList.at(pos).x()-5,circlePointsList.at(pos).y()-5);
+		 arrowPath.lineTo(ArrowWing1(angle,circlePointsList.at(pos)));
 		 arrowPath.moveTo(circlePointsList.at(pos));
-		 arrowPath.lineTo(circlePointsList.at(pos).x()-5,circlePointsList.at(pos).y()+5);
+		 arrowPath.lineTo(ArrowWing2(angle,circlePointsList.at(pos)));
 		  ///touch the circle 
-		 toolLoop.lineTo(circlePointsList.at(pos+1));
+		// toolLoop.lineTo(circlePointsList.at(pos+1));
 		  ///add the circle to the scene
 		 scene->addPath(circlesPathsList.at(pos/2));
 		 pos=pos+2;	
-		 qDebug()<<pos;
+		 //qDebug()<<pos;
 		}
 		// arrow.setPos(toolLoop.currentPosition());
 		// scene->addItem(&arrow);
 	 scene->addPath(arrowPath,QPen(Qt::blue,1));
-	 scene->addPath(toolLoop,QPen(Qt::red,1));
+	 scene->addPath(toolLoop,toolPen);
 	 return circlePointsList;
 	}
 	 
+	double getAngle(QPointF start_point,QPointF end_point){
+	 
+	 double d_x = end_point.x() - start_point.x();
+	 double d_y = end_point.y() - start_point.y();
+	 double angle = atan2 (d_y, d_x)  * 180.0 / M_PI;
+	 //qDebug()<< "angle of the line " <<angle;
+	 return angle;
+	 }
 	
+	QPointF ArrowWing1(double line_angle,QPointF end_point){
+	 QPointF wing1;
+	 double angle_wing1=(line_angle -12 +180) * M_PI /180;	
+	 //qDebug()<< "angle wing 1 " <<angle_wing1;
+	 wing1.setX(end_point.x()+cos(angle_wing1)*ARROW_LENGHT);
+	 wing1.setY(end_point.y()-sin(angle_wing1)*ARROW_LENGHT);
+	 return wing1;
+	}
+
+	
+	QPointF ArrowWing2(double line_angle,QPointF end_point){
+	  QPointF wing2;
+	 double angle_wing2=(line_angle +12+180)/180*M_PI;
+	 wing2.setX(end_point.x()+cos(angle_wing2)*ARROW_LENGHT);
+	 wing2.setY(end_point.y()-sin(angle_wing2)*ARROW_LENGHT);
+	 return wing2;
+	}
+	 
 	 
  /// NOTE: some parts may contains repeated lines (drawn above others) How to deal with such entities ?
-   QList <QList<QPointF > > MainWindow::organiseEntities(QList <QPointF > pointsList,QList <QPainterPath > partPathsList){
+    QList <QList<QPointFWithParent  > > MainWindow::organiseEntities(QList <QPointFWithParent > pointsList,QList <QPainterPath > partPathsList){
 	
 	 /// those two have to be returned to be used by the gcode generator
-	 QList <QList<QPointF > > entitiesListFinal;
+	 QList <QList<QPointFWithParent > > entitiesListFinal;
 	 /// holds the organised entities paths between tow end points 
 	 QList <QPainterPath > partPathsListFinal;
 	 
 	 /// stores the end points list that is used to optimize toolpath TSP optimization
-	 QList <QPointF > pointsEndList;
+	 QList <QPointFWithParent > pointsEndList;
 	 
 	 QPainterPath subLoop;
 	 QPainterPath toolLoop;
-	 
+	 //generatedPath=new QGraphicsItem();
+	 //toolPathItemGroup=new QGraphicsItemGroup();
 	 bool alreadyChecked=false;
 	 int oldPos=0,found=1;
 	 
-	 QPointF currentPoint;
-	 QPointF oldPoint;
-	 QList <QPointF > pointsListNew;
+	 QPointFWithParent currentPoint(0,0);
+	 QPointFWithParent oldPoint(0,0);
+	 QList <QPointFWithParent > pointsListNew;
 	 
 	 int numberClosedPath=0;
-	 QColor color =Qt::green;
-	 //entitiesListFinal.clear();
+	 	 //entitiesListFinal.clear();
 	 qDebug() << "Have to deal with "<<partPathsList.size()<<" Entities represented by "<< pointsList.size();
 	 int k=0,occurence=0, pos=0;
 	  /**
@@ -159,7 +409,7 @@
 	  *Some shapes can contains an odd number of points (intersection) the user may be interted by
 	  *being notified of their presence FIXME: TO be removed ?
 	  */ 
-	 int occurences=0;
+	 ///int occurences=0;
 	  /**
 	  *Start the entities reorganisation process until the last 2 points in the list
 	  */ 
@@ -179,7 +429,7 @@
 		  */
 		 if (pointsList.count(currentPoint)==1) {
 		     oldPos=pos;
-			 qDebug()<<"No corresponding point.AlreadyChecked other coord:"<<alreadyChecked;
+			 //qDebug()<<"No corresponding point.AlreadyChecked other coord:"<<alreadyChecked;
 			/// change to the other the point definfig the entity if it havn't already been checked
 		     if ( alreadyChecked==false ) {
 				 if (pos%2==0) pos++; else pos--; 
@@ -188,7 +438,7 @@
 			 currentPoint=pointsList.at(pos);
 			 /// still havn't found a corresponding point have to close the current path and start another
 			 if (pointsList.count(currentPoint)==1) { 		
-				 qDebug()<<"Swaped but still no corresponding point.";
+				// qDebug()<<"Swaped but still no corresponding point.";
 				 /// to garantee that we have swaped values before entering here even when we have alreadyChecked
 				 if (oldPos==pos) {
 				 if (pos%2==0) pos++; else pos--; 
@@ -220,10 +470,16 @@
 				 if (found==1) numberClosedPath ++; /// increment only if it's composed of at least one intersection
 				 /// Add the current path to entities list
 				 entitiesListFinal<< pointsListNew;
-				 qDebug()<<"The drawn Contour:"<< pointsListNew;
+				// qDebug()<<"The drawn Contour:"<< pointsListNew;
 				 pointsListNew.clear();
-				 scene->addPath(subLoop,QPen(color,1));
-				 scene->addPath(toolLoop,QPen(Qt::red,1));
+				 contoursPathItem=scene->addPath(subLoop,contourPen);				 
+				 toolPathItem=scene->addPath(toolLoop,toolPen);
+				 //toolPathItem->setParentItem(generatedPath);
+				 //contoursPathItem->setParentItem(generatedPath);
+				
+				 ///toolPathItem.addToGroup(scene->addPath(subLoop,QPen(color,1)));
+				 ///contoursPathItem.addToGroup(scene->addPath(toolLoop,QPen(Qt::red,1)));	
+				 
 				 partPathsListFinal<<subLoop;
 				 //qDebug()<<subLoop;
 				 subLoop=QPainterPath();
@@ -239,7 +495,7 @@
 				}
 				/// After swapping Points Have found that this point do have a correponding point in another entity
 		     else { 
-		         qDebug()<<"The other point at pos "<<pos<<" has a correponding";
+		        // qDebug()<<"The other point at pos "<<pos<<" has a correponding";
 			     found++;
 				 /// It's time to remove the points and their corresponding entities
 			     if (found==2) {
@@ -314,7 +570,7 @@
 		}		 
 	}
 	 qDebug () << "Found" << numberClosedPath << "closed Paths";//linesListNew;
-	 qDebug()<<"The end points lines list: "<<pointsEndList;
+	 ///qDebug()<<"The end points lines list: "<<pointsEndList;
 	 // qDebug()<<"The parts paths list: "<<partPathsListFinal;
 	 /// mAybe should do further processing to simplify the path 
 	 // qDebug()<<"The simplified parts paths list: "<<partPathsListFinal.at(0).simplified();
@@ -325,9 +581,7 @@
    the seetMetal declarations
   */
   
- SheetMetal::SheetMetal(QWidget *parent)
-     : QWidget(parent)
-    {     
+ SheetMetal::SheetMetal(QWidget *parent): QWidget(parent)   {     
 	 /// put the scen in the view
 	 scene = new  Sheet (this);
 	 QRect sceneRect(0,0,1100,900);
@@ -337,8 +591,8 @@
 	}  
 	
  
-	void Sheet::mouseReleaseEvent(QGraphicsSceneMouseEvent *mouseEvent) 
-	{
+	
+	void Sheet::mouseReleaseEvent(QGraphicsSceneMouseEvent *mouseEvent) {
 	 QPointF p1=mouseEvent->scenePos();QPointF p2=mouseEvent->lastScenePos();
 	 
 	 if (mouseEvent->button() == Qt::RightButton)
@@ -417,14 +671,13 @@
 	}
 	
 	void Sheet::mouseMoveEvent(QGraphicsSceneMouseEvent *mouseEvent) {
-		//qDebug()  << 
-		//QPoint P= mouseEvent->screenPos();
-		//if( mode==1 ) {
-		//qDebug ()<<mouseEvent->screenPos();
-		//mouseEvent->scenePos()
-		//}
-		if (empty==0 && selection_empty==0) {
-		 
+	 //qDebug()  << 
+	 //QPoint P= mouseEvent->screenPos();
+		 //if( mode==1 ) {
+		 //qDebug ()<<mouseEvent->screenPos();
+		 //mouseEvent->scenePos()
+		 //}
+		if (empty==0 && selection_empty==0) {		 
 	      if	(selected_nbr==1  && mode==1 ) {
 	      //qDebug ()<<"Moving" <<mouseEvent->screenPos();
 		 // qDebug ()<<selection->pos();
@@ -436,8 +689,7 @@
 		//qDebug () << P;
 	}
 
-	void Sheet::mousePressEvent(QGraphicsSceneMouseEvent *mouseEvent) 
-	{
+	void Sheet::mousePressEvent(QGraphicsSceneMouseEvent *mouseEvent){
 		if (mouseEvent->button() == Qt::RightButton){ qDebug()  << "right"; 
 	
 	     view->setDragMode(QGraphicsView::RubberBandDrag); 
@@ -478,8 +730,7 @@
     }
 	
 	
-	void Sheet::wheelEvent(QGraphicsSceneWheelEvent *mouseEvent)
-    {
+	void Sheet::wheelEvent(QGraphicsSceneWheelEvent *mouseEvent)    {
 	 //if(mouseEvent->modifiers()==Qt::ControlModifier){
 		int i =  mouseEvent->delta();
 		qreal factor;
@@ -506,38 +757,40 @@
 		view->setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
 		// / mWhy do we need theset Accepted???ouseEvent->setAccepted(true);
 		return;
-	//}
-   // QGraphicsScene::wheelEvent(mouseEvent);
 }
-
+ 
+ 
+ void MainWindow::createStatusBar() {
+     statusBar()->showMessage(tr("Ready"));
+    }
 
  
- void MainWindow::createStatusBar()
- {
-     statusBar()->showMessage(tr("Ready"));
- }
-
  void MainWindow::createToolBars(){
 	 fileToolBar = addToolBar(tr("File"));
      fileToolBar->addAction(openAction);
-
+	 
      editToolBar = addToolBar(tr("Edit"));
      editToolBar->addAction(clearAction);
-	 editToolBar->addAction(rotateAction);
 	 editToolBar->addAction(generateAction);
+	 editToolBar->addAction(rotateAction);
+	 editToolBar->addAction(saveAction);
+	 editToolBar->addAction(clearPathAction);	 
 	}
 	
-	
-  MainWindow::MainWindow()
-  {
+
+  MainWindow::MainWindow(){
   
      /// Actions have to be first declared before setting the menus
 	 aboutAction = new QAction(tr("&About"), this);
 	 aboutAction->setShortcut(tr("Ctrl+B"));
      openAction = new QAction(tr("&Open"), this);
 	 openAction->setShortcut(tr("Ctrl+O"));
+	 saveAction = new QAction(tr("&Save"), this);
+	 saveAction->setShortcut(tr("Ctrl+S"));
 	 clearAction = new QAction(tr("&Clear"), this);
-	 clearAction->setShortcut(tr("Ctrl+C"));
+	 clearAction->setShortcut(tr("Ctrl+C"));	
+	 clearPathAction = new QAction(tr("&Erease Path"), this);
+	 clearPathAction->setShortcut(tr("Ctrl+E"));
 	 rotateAction = new QAction(tr("&Rotate"), this);
 	 rotateAction->setShortcut(tr("Ctrl+R"));	 
 	 generateAction = new QAction(tr("&Generate path"), this);
@@ -547,8 +800,13 @@
 	 connect(aboutAction, SIGNAL(triggered()),this, SLOT(about()));  
 	 connect(openAction, SIGNAL(triggered()),this, SLOT(openFile())); 
 	 connect(clearAction, SIGNAL(triggered()),this, SLOT(clearScene())); 
+	 connect(clearPathAction, SIGNAL(triggered()),this, SLOT( clearGeneratedPath())); 
 	 connect(rotateAction, SIGNAL(triggered()),this, SLOT(rotateParts())); 
 	 connect(generateAction, SIGNAL(triggered()),this, SLOT(generatePath())); 
+	 connect(saveAction, SIGNAL(triggered()),this, SLOT( saveFile())); 
+     
+
+	
 	  /// setup theGUI
 	 createMenus() ;
 	 createStatusBar(); 
@@ -566,10 +824,16 @@
  {
   fileMenu = menuBar()->addMenu(tr("&File"));
   fileMenu->addAction(openAction);
-  fileMenu->addAction(aboutAction);
+  fileMenu->addAction(saveAction);
   fileMenu->addAction(clearAction);
+    fileMenu = menuBar()->addMenu(tr("&Help"));
+  fileMenu->addAction(aboutAction);
+  
  }
  
+    Sheet::Sheet (QWidget *parent):QGraphicsScene () {
+	
+	}
  
   void MainWindow::about()
 {
@@ -616,9 +880,7 @@
      return QSize(200, 150);
  }
  
-   Sheet::Sheet (QWidget *parent):QGraphicsScene () {
 	
-	}	
 
 
  /// NOTE: some parts may contains repeated lines (drawn above others) How to deal with such entities ?
@@ -891,17 +1153,7 @@
     }
 	
 
- 	/// the same alogorithme is used to link between lines as a list of continous lines is each time reduced to 1 line
- /// PROBLEMATIQUE : Can an arc point be common to a point that isn't on the line end ? see 3pointsarc.dxf file
- QList <QList<QPointF > > MainWindow::linkLines (QList <QList<QPointF > > linesFinal){
-     //foreach(QList linesList,linesFinal){
-		
-		
-	 //	}
-     return linesFinal;
-	 
-    }
- 
+ 	
 void MainWindow::readDxfFile() {
 	  // get the dxf entities
 	 QString file = QFileDialog::getOpenFileName(0,"Find Files", "/media/donnees/SL+TN","DXF Files (*.dxf)");
@@ -968,7 +1220,7 @@ void MainWindow::readDxfFile() {
 		// rectBound->setPos(100,100);
 		// scene->setForegroundBrush(Qt::red);
 	 //scene->addItem(rectBound);
-	 qDebug()<<"the linked lines list:"<<linkLines(organiseEntities(creationClass->pointsPathList,creationClass->partPathsList));
+	 //qDebug()<<"the linked lines list:"<<linkLines(organiseEntities(creationClass->pointsPathList,creationClass->partPathsList));
 	
 	 //qDebug()<<"the linked lines list:"<<linkLines(commonPoints(creationClass->pointsList,creationClass->pointsArcsList,creationClass->arcsPathsList));
 	 /// then we search for possible arcs joint , arcs extrimities should find two corresponding points on 
