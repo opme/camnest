@@ -26,7 +26,7 @@
 
 #include <iostream>
 #include <stdio.h>
-//QPointFWithParent p1, p2;
+
 
 /**
  * Default constructor.
@@ -41,20 +41,11 @@ Test_CreationClass::Test_CreationClass() {
 	 // qDebug() <<a.parentType;
 }
 
-QPointFWithParent::QPointFWithParent(qreal x, qreal y, qreal cx,qreal cy,qreal radius,QPointFWithParent::Types type,bool cw):QPointF(){
-	 setX(x);
-	 setY(y); 
-	 parentType=type;
-	 centerX=cx;
-	 centerY=cy;
-	 cWise=cw;
-	 parentRadius=radius;
-	}
 /**
  * Sample implementation of the method which handles line entities.
  */
  
-  QPainterPath Test_CreationClass::drawLine( const QPointFWithParent & startPoint, const QPointFWithParent & endPoint) {
+  QPainterPath Test_CreationClass::drawLine( const QPointF & startPoint, const QPointF & endPoint) {
      QPainterPath lineEntity=QPainterPath ();
 	 lineEntity.moveTo(startPoint);
 	 lineEntity.lineTo(endPoint);
@@ -64,12 +55,21 @@ QPointFWithParent::QPointFWithParent(qreal x, qreal y, qreal cx,qreal cy,qreal r
 void Test_CreationClass::addLine(const DL_LineData& data) {
 
 	 if (inBlock) return;
-	 QGraphicsLineItem *line = new QGraphicsLineItem (data.x1, data.y1, data.x2, data.y2);
+	
 	 QPointFWithParent p1( data.x1, data.y1);
 	 QPointFWithParent p2( data.x2, data.y2);
 	 /// if a line ending= it's begining have to skip it (may occur in some poorly coded cad)
 	 if ( p1==p2 ) return;
 	 
+	 /// TODO:check if we previously had added this line
+	 ///if (pointsPathList.count(p1)!=0 || pointsPathList.count(p2)!=0 ) {
+		 
+		/// pos=pointsPathList.indexOf(p1,pos+1);
+		 
+		///}
+	 pointsPathList.append( p1);
+	 pointsPathList.append( p2);
+	  
 	 QPainterPath lineTemp=drawLine(p1,p2);
 	 /// store the line in the paths list if not already present, some CAD frawinfg contains repeated entities
 	 if (!partPathsList.contains(lineTemp)){
@@ -78,21 +78,17 @@ void Test_CreationClass::addLine(const DL_LineData& data) {
 	 else{
 		qDebug () << "line already present skipping...";
 		return;
-		}
-	 
-	 pointsPathList.append( p1);
-	 pointsPathList.append( p2);
-	 
-	 pointsList.append( p1);
-	 pointsList.append( p2);
-	 
+		}		 
 	 partPath.moveTo( p1);
 	 partPath.lineTo( p2);
+	 partBoundingRect=partPath.controlPointRect();
 	 //QList<QGraphicsItem *> colidesWith= line->collidingItems ( Qt::IntersectsItemShape );
 	 // qDebug()<< line->collidesWithPath(partPath);
-	 partBoundingRect=partPath.controlPointRect();
+
 	 //qDebug() << "intersect with " << colidesWith.size();
-	 linesList.append(line);
+	 //linesList.append(line);
+	 //pointsList.append( p1);
+	 //pointsList.append( p2);
 	 //partPathsList.append(&partPath);/// maybe add a type column to the list holding the path nature ; line; vertex; circle...
 	 //  qDebug() << "line "<<data.x1<< data.y1<< data.x2<< data.y2;
     }
@@ -143,8 +139,6 @@ void Test_CreationClass::addArc(const DL_ArcData& data) {
 	 
 	 partPath.moveTo(p1);
 	 partPath.arcTo(boundingRect,-(teta1),-qAbs(teta1-teta2));
-
-
 }
 
 QPainterPath Test_CreationClass::drawCircle( const QPointF &centerPoint, const qreal radius) {

@@ -19,7 +19,7 @@ int main( int argc, char** argv )
 	 app.setApplicationName( "camnest" );
 	 MainWindow	 mainWindow;
      mainWindow.setGeometry( 100, 100, 1100, 850);
-	 mainWindow.setWindowTitle( "Nested parts" );
+	 //mainWindow.setWindowTitle( "Nested parts" );
      mainWindow.show();
 	 
 	 //sheet.setGeometry(300, 300, 320, 320);

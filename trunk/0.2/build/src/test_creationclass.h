@@ -9,32 +9,9 @@
 //#define FLT_DIG 4
 //const double Pi = 3.14159265358979323846;
 //static const double Pi = 3.14159265358979323846264338327950288419717;
+#include "qpointfwithparent.h"
+class QPointFWithParent;
 
-
-
-
-class QPointFWithParent : public QPointF {
-	 public:
-	 
-	 enum type {
-         Line = 0x0,
-         Arc = 0x1,
-         Circle = 0x2,
-         Polyline = 0x3
-     };
-     Q_DECLARE_FLAGS(Types, type)
-	 QPointFWithParent::Types parentType;
-	 
-	 qreal centerX;
-	 qreal centerY;
-	 qreal parentRadius;
-	 bool cWise;
-	 /// create by default a point and stores it as a Line
-	 QPointFWithParent (qreal x, qreal y, qreal cx=0,qreal cy=0,qreal radius=0,QPointFWithParent::Types type=0x0,bool cw=true);
-	 
-
-};
- Q_DECLARE_OPERATORS_FOR_FLAGS(QPointFWithParent::Types)
 
 class Test_CreationClass : public DL_CreationAdapter {
 public:
@@ -61,7 +38,7 @@ public:
     virtual void addMText(const DL_MTextData& data);
 	 virtual void addText(const DL_TextData& data);
 	///------------------
-	 QPainterPath drawLine( const QPointFWithParent & startPoint, const QPointFWithParent & endPoint);
+	 QPainterPath drawLine( const QPointF & startPoint, const QPointF & endPoint);
 	 QPainterPath drawArc( const QPointFWithParent & startPoint, const QRectF & rectangle, qreal startAngle, qreal sweepAngle);
 	 QPainterPath drawCircle( const QPointF &centerPoint, const qreal radius);
 
@@ -77,7 +54,7 @@ public:
 	 QList <QPainterPath > circlePathsList;
 	 
 	 
-	 QList <QGraphicsLineItem *> linesList;	
+	 // QList <QGraphicsLineItem *> linesList;	
 
 	 QList <QGraphicsPathItem *> polylinesList;
 	 QList <QPoint *> vertexesList;
@@ -93,8 +70,8 @@ public:
 	 QPainterPath partPath;
 	 /// the part boundries
 	 QPainterPath partOutline;
-	 /// the list of start end points of entities lines
-	 QList <QPointF > pointsList; 
+	 // the list of start end points of entities lines
+	 //QList <QPointF > pointsList; 
 	
 	 /// the digit to round to float values (to still be in  the tolerance)
 	 int precision;
