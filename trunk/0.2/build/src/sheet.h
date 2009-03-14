@@ -36,13 +36,17 @@
 	 QGraphicsItem *selectedItem;
 	 QGraphicsLineItem *test;
 	 QGraphicsItemGroup *selection;
+	 void moveTool(int currentLoop);
+	 QBasicTimer timer;
 	
   protected:
      void mousePressEvent(QGraphicsSceneMouseEvent *mouseEvent);
      void mouseMoveEvent(QGraphicsSceneMouseEvent *mouseEvent);
 	 void mouseReleaseEvent(QGraphicsSceneMouseEvent *mouseEvent);
      void wheelEvent(QGraphicsSceneWheelEvent *mouseEvent);
- 
+	 void timerEvent(QTimerEvent *event);
+	
+     
  
  };
  
@@ -58,7 +62,8 @@ public:
 	 void addArc(double cx,double cy,double radius,double teta1,double teta2);
 	 
 	 QList <QList<QPointFWithParent  > > organiseEntities(QList <QPointFWithParent > pointsList,QList <QPainterPath > partPathsList);
-	 QList <QPointF >  addCircles(QList <QPointF > circlePointsList,QList <QPainterPath > circlesPathsList);
+	 ///every list contains only one memeber a circle but we need to declareas a list of lists so we can merge it with above one
+	 QList <QList<QPointFWithParent  > >  addCircles(QList <QPointFWithParent > circlePointsList,QList <QPainterPath > circlesPathsList);
 	 /// remove a point from the list
 	 void shrink(QList <QPointFWithParent > &pointsList,QList <QPointFWithParent > &pointsListNew,int pos,int oldPos);
 	 ///find a lonley point if any or repreted one
@@ -71,6 +76,7 @@ public:
      QAction *openAction;
      QAction *clearAction;  
 	 QAction *deleteAction;  
+	 QAction *optimizeAction;  
 	 //QAction *stepAction; 
      QAction *mirrorAction;
 	 QAction *yMirror;
@@ -97,7 +103,8 @@ public:
 	 void generatePath();
 	 void stepByStep();
 	 void zoomFit();
-	void deleteItems();
+	 void optimize();
+	 void deleteItems();
   };
   
   

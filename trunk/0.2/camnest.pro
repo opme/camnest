@@ -1,10 +1,10 @@
 ###########################################################################################
 ##		Created using Monkey Studio v1.8.3.0
 ##
-##	Author    : aminesay aminesay@yahoo.fr
+##	Author    : Amine say aminesay@yahoo.fr
 ##	Project   : camnest
 ##	FileName  : camnest.pro
-##	Date      : 2009-01-30T17:45:52
+##	Date      : 2009-01-30T17:49:04
 ##	License   : GPL
 ##	Comment   : Creating using Monkey Studio RAD
 ##	Home Page   : code.google.com/camnest
@@ -16,20 +16,15 @@
 
 XUPProjectSettings {
 	EDITOR	= QMake
+	EXECUTE_DEBUG	= camnest_debug
+	QT_VERSION	= Qt System (4.4.3)
 }
 
-TEMPLATE = app
+TEMPLATE	= app
 LANGUAGE	= C++/Qt4
 TARGET	= $$quote(camnest)
-CONFIG	-= qt
 CONFIG	+= debug_and_release
-BUILD_PATH	 =  ./build
-LIBS += -L./libs/libdxflib.a
-
-QMAKE_CFLAGS_RELEASE -= -O2
-QMAKE_CXXFLAGS_RELEASE -= -O2
-QMAKE_CFLAGS_RELEASE += -O3
-QMAKE_CXXFLAGS_RELEASE += -O3
+BUILD_PATH	= ./build
 
 CONFIG(debug, debug|release) {
 	#Debug
@@ -52,4 +47,23 @@ CONFIG(debug, debug|release) {
 	RCC_DIR	= $${BUILD_PATH}/release/.rcc
 }
 
-SOURCES	= src/main.cpp
+SOURCES	= src/main.cpp \
+	src/test_creationclass.cpp \
+	src/renderpath.cpp \
+	src/window.cpp \
+	src/sheet.cpp \
+	src/parts.cpp \
+	src/qpointfwithparent.cpp \
+	src/gcode.cpp \
+	src/gatsp.cpp
+
+LIBS	= ../libs/libdxflib.a
+INCLUDEPATH	= src/dxflib
+HEADERS	= src/test_creationclass.h \
+	src/renderpath.h \
+	src/window.h \
+	src/sheet.h \
+	src/parts.h \
+	src/qpointfwithparent.h \
+	src/gcode.h \
+	src/gatsp.h

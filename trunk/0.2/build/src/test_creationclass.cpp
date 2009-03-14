@@ -141,14 +141,16 @@ void Test_CreationClass::addArc(const DL_ArcData& data) {
 	 partPath.arcTo(boundingRect,-(teta1),-qAbs(teta1-teta2));
 }
 
-QPainterPath Test_CreationClass::drawCircle( const QPointF &centerPoint, const qreal radius) {
+QPainterPath Test_CreationClass::drawCircle( const QPointFWithParent &centerPoint) {
      QPainterPath circleEntity=QPainterPath ();
-	 QPointF touchCircle(centerPoint.x()+radius,centerPoint.y());
-	 // circleEntity.moveTo(centerPoint);
+	  qreal radius=centerPoint.parentRadius;
+	 QPointFWithParent touchCircle=centerPoint;//(centerPoint.x()+radius,centerPoint.y(),QPointFWithParent::Circle);
+	 touchCircle.setX(centerPoint.x()+centerPoint.parentRadius);
+	 
 	 pointsCircleList.append(centerPoint);
 	 /// move by radius to touch the circle
-	 //circleEntity.moveTo(touchCircle);
-	 pointsCircleList.append(touchCircle);
+	 ///pointsCircleList.append(touchCircle);
+	 ///FIXME: clean up : WE don't need radiusCircleList anymore 
 	 radiusCircleList.append(radius);
 	 circleEntity.addEllipse(centerPoint,radius,radius);
 	 return circleEntity; 
@@ -160,7 +162,7 @@ QPainterPath Test_CreationClass::drawCircle( const QPointF &centerPoint, const q
 void Test_CreationClass::addCircle(const DL_CircleData& data) {
      if (inBlock) return;
 	 
-	 circlePathsList.append((drawCircle(QPointF(data.cx,data.cy),data.radius)));
+	 circlePathsList.append(drawCircle(QPointFWithParent(data.cx,data.cy,data.cx,data.cy,data.radius,QPointFWithParent::Circle)));
 	 
 	 //QGraphicsEllipseItem *ellipse = new QGraphicsEllipseItem (data.cx, data.cy, data.radius,data.radius);
 	 //ellipsesList.append(ellipse);

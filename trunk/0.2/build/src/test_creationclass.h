@@ -40,7 +40,7 @@ public:
 	///------------------
 	 QPainterPath drawLine( const QPointF & startPoint, const QPointF & endPoint);
 	 QPainterPath drawArc( const QPointFWithParent & startPoint, const QRectF & rectangle, qreal startAngle, qreal sweepAngle);
-	 QPainterPath drawCircle( const QPointF &centerPoint, const qreal radius);
+	 QPainterPath drawCircle( const QPointFWithParent  &centerPoint);
 
 
 	 ///------------------
@@ -60,7 +60,7 @@ public:
 	 QList <QPoint *> vertexesList;
 	
 	 
-	 QList <QPointF > pointsCircleList;
+	 QList <QPointFWithParent > pointsCircleList;
 	 QList <QPointFWithParent > pointsPathList;
 	 
 	 QList <qreal > radiusCircleList;

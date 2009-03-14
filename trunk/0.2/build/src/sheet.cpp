@@ -2,6 +2,7 @@
  #include "sheet.h"
  #include "qpointfwithparent.h"
  #include "gcode.h"
+  #include "gatsp.h"
  //#define RAND_MAX 255
 #define ARROW_LENGHT 10
   DL_Dxf* dxf;
@@ -11,15 +12,18 @@
   Sheet *pathScene;
  // QGraphicsView *view;
   QPainterPath path2;
-  
+  /// Holds the lshortest route
+   Chromosome *test;
+   Popu *pop;
   QPainterPath toolLoop;
-  
+  QGraphicsPixmapItem *toolPix;
   QGraphicsItem *generatedPath;
-  QGraphicsItem  *toolPathItem;
-  QGraphicsItem  *contoursPathItem;
+
   
   /// ho<w many loop in a part
   int numberClosedPath=0;
+  ///FIXME: EVEN a circle can be a part Outline===> Priority HIGH How many circles in a part;
+  int nbrCircles=0;
   
 	QGraphicsPathItem *piece;
   ///Holds the nulber of inserted parts in the drawing
@@ -34,8 +38,9 @@
  int selection_empty=1;
  /// numberof selecteditems
  int selected_nbr=0;
- ///  QGraphicsPathItem *par2t;
- QList <QPointF > linesListNew;
+ ///holds the part outline position
+ int outlinePos=0;
+
  /// havn't to be pointer reference as they entities are deleted after being read
  QList<Test_CreationClass *> partsList;
  
@@ -46,24 +51,33 @@
    /// holds the organised loops paths (loops driven)
   ///QList <QPainterPath > partLoopsListFinal;
 int currentLoop=0;
-  
+    
+	QList <QPointFWithParent > endPointslist;
+	/// the same as above but afetr TSp optimizastion
+	 QList <QPointFWithParent> bestRoute;
+	 
   /// stiores the organised entities Start/end points.
   QList <QList<QPointFWithParent  > > gCodePoints;
+  
+    /// stiores the organised entities Start/end points after TSp optim.
+  QList <QList<QPointFWithParent  > > gCodePointsOpt;
   /// stiores the circles centers/radius start & end points bieng the attaque points
-   QList<QPointF > gCodeCirclesPoints;
+  QList <QList<QPointFWithParent  > > gCodeCirclesPoints;
    QList<qreal > gCodeCirclesRadius;
-  /// the first closed loop in a piece
- QList<QPointF > closedLoop;
+
  QPen toolPen(Qt::blue,1);//, Qt::DashDotLine);
  QPen contourPen(Qt::red);
 
 QPointFWithParent offset(0,0);
-QList<QPointF > offsets;
+QList<QPointFWithParent > offsets;
  /// used when drawing toolpath and for homing on G-code
  QPointF homePoint(0,0);
 /// See http://www.linuxcnc.org/handbook/gcode/g-code.html for more infos about G-code
 
-
+/**
+the outer loop has to be treated lastly.
+the home point have to be the first point in every tsp instance
+*/
 
 /**
 05-03-09:
@@ -76,34 +90,42 @@ Another class have to deal with the GUI part!
 
 */
 
- QPointF endPoint(0,0);QGraphicsLineItem *toolLine;QGraphicsItemGroup* toolPathGroup;QList<QGraphicsItem*> temporary;
-   void MainWindow::stepByStep (){
-		
-		///pathScene->addPath(partPathsListFinal.at(currentLoop));
-		if (currentLoop ==  toolLoop.elementCount()-1) {
-			 //pathScene->clear();
+ QPointF endPoint(0,0);QGraphicsLineItem *toolLine;
+
+   
+   void Sheet::timerEvent(QTimerEvent *event)
+ {
+     if (event->timerId() == timer.timerId()) {
+         
+		 if (currentLoop == bestRoute.size()-1) {
 			 currentLoop=0;
-			 
-			 homePoint=QPointF(0,0);
-			 qDebug()<<"removing group";
-			 pathScene->removeItem(toolPathGroup);
-			 toolPathGroup=pathScene->createItemGroup (temporary);
-		}
-		else {
-			 currentLoop++;	
-		}
-			
-		 /// we need to cast as the element At returns at QpainterPath elment
-		 //QPainterPath *test=dynamic_cast<QPainterPath *> &(toolLoop.elementAt(currentLoop));
-		 ///As all the tool path is composed of lines we simpl add them one by one;
-		 ///TODO: create curved paths when oing on arcs/circles<== easy to tell...but to code!!!
-		 if (toolLoop.elementAt(currentLoop).isLineTo()) {
-			 endPoint=toolLoop.elementAt(currentLoop);
-			 toolLine=pathScene->addLine(QLineF(homePoint,endPoint),toolPen);
-			 //toolLine->setParentItem(toolPathItem);
-			 /// toolPathGroup->addToGroup(toolLine);
-			 homePoint=endPoint;
+			 timer.stop();
 			}
+		 else {
+			 ++currentLoop;
+			 qDebug()<<"Moving to shape"<<currentLoop;
+			 moveTool(currentLoop);
+			}
+		 
+     } else {
+         /// deal with other event...
+     }
+	 
+	}
+   
+   void Sheet::moveTool(int currentLoop){
+	 endPoint=bestRoute.at(currentLoop);
+	 toolPix->setPos(endPoint);
+	 homePoint=endPoint;
+	}
+
+	 
+   void MainWindow::stepByStep (){
+     if (toolPix==0){
+		 toolPix=pathScene->addPixmap(QPixmap("/home/invite/Desktop/bazar/PFE/camnest/tool.png"));
+	 }
+	 pathScene->timer.start(400, pathScene);
+	
 	}
 
   
@@ -128,22 +150,28 @@ Another class have to deal with the GUI part!
 			 ///Add the part to files list
 			 partsList.append(creationClass);
 			 
+			 //QGraphicsPixmapItem toolPixMap(QPixmap("/home/invite/bazar/PFE/camnest/tool.png"),0);			 
+			 ///
+			 
 			 /// Display the parsed part path as is. 
 			 ///pathScene->addPath(creationClass->partPath)->setFlags(QGraphicsItem::ItemIsSelectable | QGraphicsItem::ItemIsMovable);
 			 piece=(pathScene->addPath(creationClass->partPath));			 
 			 piece->setFlags(QGraphicsItem::ItemIsSelectable | QGraphicsItem::ItemIsMovable);
 			 ///0 holds the part index
 			 piece->setData(0,insertedParts);
-			 insertedParts=pathScene->items().size();//// ou bien partsList .size()
-			  qDebug() <<insertedParts <<"Parts in the scene";
+			 ///insertedParts=pathScene->items().size();//// FIXMEne marche plus lorsqu'on add le ttolPix
+			 ///ou bien partsList .size()
+			 insertedParts++;
+			 qDebug() <<insertedParts <<"Parts in the scene";
 			 qDebug() << "Part inserted"<<piece;
-			
 			 clearAction->setEnabled(true);
 			 generateAction->setEnabled(true);
 			 /// a surveiller Havn't it to be a QPOINTwith Parent 
-			 offset=QPointF(0,0);
+			 offset=QPointFWithParent(0,0);
 			 offsets<<offset;
 			 currentLoop=0;empty=0;
+			 
+			 //toolPix->setPos(QPointF(0460,620));
 			 //path2 =creationClass->partPath;
 			 //part= new QGraphicsPathItem(path2);
 			 //part->setFlag(QGraphicsItem::ItemIsMovable, true);
@@ -155,10 +183,6 @@ Another class have to deal with the GUI part!
 			 //pathScene-> views().at(0)->fitInView(pathScene->itemsBoundingRect(),Qt::KeepAspectRatio);
 			 ///QGraphicsRectItem *rectBound = new QGraphicsRectItem(creationClass->partBoundingRect);
 		}
-		///qDebug() << "removing item group ";
-	 ///pathScene->removeItem(toolPathGroup);
-	 ///qDebug() << "removed item group ";
-	 ///toolPathGroup=pathScene->createItemGroup (temporary);
 	}
 
  
@@ -175,14 +199,15 @@ Another class have to deal with the GUI part!
 	 GCode partGCode (& file);
 	 // partGCode.fileName=fileName;
 	 partGCode.writeHeader(fileName);
-	 partGCode.writeCircleLoop( gCodeCirclesPoints,gCodeCirclesRadius,1);
+	 ///partGCode.writeCircleLoop( gCodeCirclesPoints,gCodeCirclesRadius,1);
 	 int i=0;
-	 qDebug()<<"Writing the Gcode of "<<gCodePoints.size()<<"parts";
-	 while (i < gCodePoints.size()){
+	 qDebug()<<"Writing the Gcode of "<<gCodePointsOpt.size()<<"loops";
+	 while (i < gCodePointsOpt.size()){
 		 partGCode.comment("Adding a Loop");
 		 partGCode.comment("Turnin off torch");
 		 partGCode.comment("going to Z home");
-	 	 partGCode.writeClosedLoop( gCodePoints.at(i));
+		 /// we don't use Gpointpoint anymore as we have the optimized path!
+	 	 partGCode.writeClosedLoop( gCodePointsOpt.at(i));
 		 i++;
 		}	 
 	 partGCode.writeEnd();
@@ -194,31 +219,35 @@ Another class have to deal with the GUI part!
 	void MainWindow::generatePath() {	 
 	 if (insertedParts!=0){
 		 //qDebug()<<"Generating the path"<<partsList.at(0)->pointsPathList;
-		 scene->clear();toolLoop=QPainterPath();
-		 //toolLoop.clear();
+		 scene->clear();
+		 toolLoop=QPainterPath();
 		 gCodeCirclesPoints.clear();
 		 gCodeCirclesRadius.clear();
 		 gCodePoints.clear();
 		 partPathsListFinal.clear();
 		 partLoopsListFinal.clear();
 		 //scene->setPos(offset);
-		//qDebug()<<"the linked lines list:"<<gCodePoints;
+		 //test=new Chromosome();
+		 
 		 qDebug()<<"adding circular holes";
 		 /// some pieces may not contain circular holes
 		 currentPart=0;
 		 while (currentPart<insertedParts){
 			 qDebug()<<"Generating Gcode of part"<<currentPart+1<<"from "<<insertedParts;
 			 if(partsList.at(currentPart)->pointsCircleList.size()!=0){
-				 gCodeCirclesPoints<<addCircles(partsList.at(currentPart)->pointsCircleList,partsList.at(currentPart)->circlePathsList);
+				/// gCodeCirclesPoints<<addCircles(partsList.at(currentPart)->pointsCircleList,partsList.at(currentPart)->circlePathsList);
+				gCodePoints<<addCircles(partsList.at(currentPart)->pointsCircleList,partsList.at(currentPart)->circlePathsList);
 		 //qDebug()<<"the circles cut list:"<<addCircles(partsList.at(0)->pointsCircleList,partsList.at(0)->circlePathsList);
-		 /// todo: reimplment withparent
-				 gCodeCirclesRadius<<partsList.at(currentPart)->radiusCircleList;
+		
+				///  gCodeCirclesRadius<<partsList.at(currentPart)->radiusCircleList;
 			 }
 			 qDebug()<<"generating tool Path";
 			 /// some pieces may only contain circular holes
 			 if(partsList.at(currentPart)->pointsPathList.size()!=0){
 				 gCodePoints<<organiseEntities(partsList.at(currentPart)->pointsPathList,partsList.at(currentPart)->partPathsList);
 				// qDebug()<< gCodePoints;///gCodePoints+=organiseEntities(partsList.at(1)->pointsPathList,partsList.at(1)->partPathsList);
+				/// This is the default route automaticlayy generated without any optimization
+				gCodePointsOpt=gCodePoints;
 				}
 			 /// Draw the QPainterPath of the part
 			 (scene->addPath(partsList.at(currentPart)->partPath,contourPen))->setPos(offsets.at(currentPart));
@@ -230,6 +259,7 @@ Another class have to deal with the GUI part!
 		else{
 		statusBar()->showMessage(tr("No path to generate"));
 		}
+
      statusBar()->showMessage(tr("Path generated"));
 	 stepAction->setEnabled(true);
 	 
@@ -250,9 +280,10 @@ Another class have to deal with the GUI part!
     void MainWindow::clearScene() {
 	 ///todo: add a warning Yes/no
 	 partsList.clear ();
+	 endPointslist.clear ();
 	 partLoopsListFinal.clear();
 	 partPathsListFinal.clear();
-	 insertedParts=0;
+	 insertedParts=0;numberClosedPath=0;
 	 scene->clear();
 	 pathScene->clear();	 
 	 clearAction->setEnabled(false);
@@ -366,7 +397,7 @@ Another class have to deal with the GUI part!
 		 if ((selectedItem->flags().testFlag(QGraphicsItem::ItemIsMovable)))
 		  selectedItem->setPos(mouseEvent->scenePos());
 		  //qDebug()<<selectedItem->pos();
-		  offsets.replace((selectedItem->data(0).toInt()),selectedItem->pos());
+		  offsets.replace((selectedItem->data(0).toInt()),QPointFWithParent(selectedItem->pos().x(),selectedItem->pos().y()));
 	     //qDebug()<<offsets;
 		 // selection->setPos(mouseEvent->scenePos());
 	     }
@@ -470,6 +501,27 @@ Another class have to deal with the GUI part!
      statusBar()->showMessage(tr("Ready"));
     }
 
+	void MainWindow::optimize(){
+	 /// replaces the points list with the previously created one (inspired from genetic algo)
+	 
+	 ///endPointslist=test->createNew(endPointslist);
+	 int i=0;
+	 pop=new Popu();
+	 bestRoute=pop->init(endPointslist);
+	 qDebug()<<"optimization done";//<<bestRoute;
+	 
+	 gCodePointsOpt.clear();
+	 while (i<bestRoute.size()){
+			///FIXME: merge before Circles and Points into gcode
+			qDebug()<<"Order "<<bestRoute.at(i).parentLoop;
+		 gCodePointsOpt.append(gCodePoints.at(bestRoute.at(i).parentLoop));
+		 i++;
+		}
+		///Now we add the part's outline
+		qDebug()<<"Finally the outline "<<outlinePos;
+	gCodePointsOpt.append(gCodePoints.at(outlinePos));
+	}
+
  
  void MainWindow::createToolBars(){
 	 fileToolBar = addToolBar(tr("File"));
@@ -482,8 +534,8 @@ Another class have to deal with the GUI part!
 	 editToolBar->addAction(saveAction);
 	 editToolBar->addAction(stepAction);	
 	 editToolBar->addAction(zoomFitAction);
-	  editToolBar->addAction(deleteAction);
-	 
+	 editToolBar->addAction(deleteAction);
+	 editToolBar->addAction(optimizeAction);
 	 
 	 clearAction->setEnabled(false);
 	 generateAction->setEnabled(false);
@@ -491,7 +543,6 @@ Another class have to deal with the GUI part!
 	//editToolBar = addToolBar(tr("Edit"));
 	}
 	
-
   MainWindow::MainWindow(){
   
      /// Actions have to be first declared before setting the menus
@@ -514,6 +565,8 @@ Another class have to deal with the GUI part!
 	 generateAction->setShortcut(tr("Ctrl+G"));
 	 deleteAction= new QAction(tr("&Delete"), this);
 	 deleteAction->setShortcut(tr("Ctrl+D"));
+	 optimizeAction= new QAction(tr("&Optimize"), this);
+	 optimizeAction->setShortcut(tr("Ctrl+Z"));
 	 
 	 /// connecting the signals
 	 connect(aboutAction, SIGNAL(triggered()),this, SLOT(about()));  
@@ -525,7 +578,7 @@ Another class have to deal with the GUI part!
 	 connect(zoomFitAction, SIGNAL(triggered()),this, SLOT(zoomFit())); 
 	 connect(saveAction, SIGNAL(triggered()),this, SLOT( saveFile())); 
      connect(deleteAction, SIGNAL(triggered()),this, SLOT( deleteItems())); 
-
+     connect(optimizeAction, SIGNAL(triggered()),this, SLOT( optimize()));
 	 setWindowTitle(tr("CamNest"));
 	  /// setup theGUI
 	 createMenus() ;
@@ -562,7 +615,7 @@ Another class have to deal with the GUI part!
 	 //QGraphicsView *sheetView= new QGraphicsView(scene);
 	
 	 setCentralWidget(widget);
-	
+
 	 // QGridLayout *mainLayout = new QGridLayout;
      //mainLayout->addWidget(test, 0, 0, 1, 4);
 	 //QPushButton *quit = new QPushButton("Quit");
@@ -622,55 +675,67 @@ Another class have to deal with the GUI part!
  }
   
 	
-	QList <QPointF >  MainWindow::addCircles(QList <QPointF > circlePointsList,QList <QPainterPath > circlesPathsList){
+	QList <QList<QPointFWithParent  > >  MainWindow::addCircles(QList <QPointFWithParent > circlePointsList,QList <QPainterPath > circlesPathsList){
 
-	 QPainterPath subLoop;
-	 //QPainterPath toolLoop;
-	 QPainterPath arrowPath;
-	 
-	 //arrowPath.lineTo(5,5);
-	 //arrowPath.lineTo(100,0);
-	 //QGraphicsPathItem arrow(arrowPath);
-	 //arrow.setFlag(QGraphicsItem::ItemIsMovable, false);
-	
-	 int pos=0;double angle;
+	 //numberClosedPath=0; 
+	 //QPainterPath arrowPath;
+	 QList <QPointFWithParent > temp;
+	 temp.append(circlePointsList[0]);
+	 int pos=0;//double angle;
 	 qDebug()<<"Adding "<<circlePointsList.size()<<" circles";
-	 while (pos<=circlePointsList.size()-2) {	 
+	 ///for (int pos=0; pos <circlePointsList.size()-2;pos=pos+2){//while (pos<=circlePointsList.size()-2) {	 
+		 for (int pos=0; pos <circlePointsList.size();pos++){
 		 /// add the arrrow to indicate the toolpath sens
 		 ///go to the circle center
 		 /// Do we need to call translateEntity(pointsList.at(pos),offsets.at(currentPart))??
-		 circlePointsList.replace(pos,(circlePointsList.at(pos)+offsets.at(currentPart)));
-		 circlePointsList.replace(pos+1,(circlePointsList.at(pos+1)+offsets.at(currentPart)));
-		 
-		 angle=getAngle(circlePointsList.at(pos),circlePointsList.at(pos+1));// shoukld be +2 but then go oaftre size
-		 toolLoop.lineTo(circlePointsList.at(pos));		
-		/// arrowPath.moveTo(circlePointsList.at(pos));
-		/// arrowPath.lineTo(ArrowWing1(angle,circlePointsList.at(pos)));
-		/// arrowPath.moveTo(circlePointsList.at(pos));
-		/// arrowPath.lineTo(ArrowWing2(angle,circlePointsList.at(pos)));
+		 QPointFWithParent current=circlePointsList.at(pos);
+		 QPointFWithParent translated=translateEntity(current,offsets.at(currentPart));
+		 circlePointsList.replace(pos,translated);
+		 ///FIXME; deal with attcks points
+		 ///circlePointsList.replace(pos+1,translateEntity(circlePointsList.at(pos+1),offsets.at(currentPart)));
+		 //qDebug() <<" Adding circles to endpoints list for TSp optimization";
+		
+		 current.setLoopNbr(numberClosedPath);
+		 //endPointslist.append(QPointFWithParent(circlePointsList.at(pos).x(),circlePointsList.at(pos).y()));
+		 endPointslist.append(current);
+		  
+		 ///
+		 (scene->addText((QString("%1").arg(numberClosedPath)),QFont("Helvetica", 6)))->setPos(translated);
+		 numberClosedPath++;
+		 /// angle=getAngle(circlePointsList.at(pos),circlePointsList.at(pos+1));// shoukld be +2 but then go oaftre size
+		 toolLoop.lineTo(translated);		
+		 /// arrowPath.moveTo(circlePointsList.at(pos));
+		 /// arrowPath.lineTo(ArrowWing1(angle,circlePointsList.at(pos)));
+		 /// arrowPath.moveTo(circlePointsList.at(pos));
+		 /// arrowPath.lineTo(ArrowWing2(angle,circlePointsList.at(pos)));
 		 //scene->addPath(createArrow(circlePointsList.at(pos),circlePointsList.at(pos+1)),QPen(Qt::blue,1));
-	  /// inspired from edges.cpp @qt examles
-		 QLineF line(circlePointsList.at(pos),circlePointsList.at(pos+1));
-	  qreal arrowSize=9.0;
-		 double angle = ::acos(line.dx() / line.length());
-		 qDebug()<<angle;
-		 if (line.dy() >= 0)       angle = 2*M_PI - angle;
-		 QPointF destArrowP1 = circlePointsList.at(pos)+ QPointF(sin(angle + M_PI / 3) * arrowSize,cos(angle + M_PI / 3) * arrowSize);
-		 QPointF destArrowP2 =circlePointsList.at(pos) + QPointF(sin(angle + M_PI -M_PI / 3) * arrowSize,cos(angle + M_PI - M_PI / 3) * arrowSize);
-		 arrowPath.addPolygon(QPolygonF() << circlePointsList.at(pos) << destArrowP1 << destArrowP2);
+	     /// inspired from edges.cpp @qt examles
+		 ///QLineF line(circlePointsList.at(pos),circlePointsList.at(pos+1));
+	     /// /// qreal arrowSize=9.0;
+		 /// double angle = ::acos(line.dx() / line.length());
+		 /// qDebug()<<angle;
+		 /// if (line.dy() >= 0)       angle = 2*M_PI - angle;
+		 /// QPointF destArrowP1 = circlePointsList.at(pos)+ QPointF(sin(angle + M_PI / 3) * arrowSize,cos(angle + M_PI / 3) * arrowSize);
+		 /// QPointF destArrowP2 =circlePointsList.at(pos) + QPointF(sin(angle + M_PI -M_PI / 3) * arrowSize,cos(angle + M_PI - M_PI / 3) * arrowSize);
+		 /// arrowPath.addPolygon(QPolygonF() << circlePointsList.at(pos) << destArrowP1 << destArrowP2);
 		  ///touch the circle 
-		// toolLoop.lineTo(circlePointsList.at(pos+1));
+		 // toolLoop.lineTo(circlePointsList.at(pos+1));
 		  ///add the circle to the scene
 		 /// scene->addPath(circlesPathsList.at(pos/2));
-		 pos=pos+2;	
+		 //pos=pos+2;	
 		 //qDebug()<<pos;
+		 temp[0]=circlePointsList.at(pos);
+		 gCodeCirclesPoints.append(temp);
 		}
-		// arrow.setPos(toolLoop.currentPosition());
-		
-	scene->addPath(arrowPath,QPen(Qt::blue,1));
+		nbrCircles=numberClosedPath;
+		///prepare the road for organise entities
+		//numberClosedPath++;
+		// arrow.setPos(toolLoop.currentPosition());		
+	 // scene->addPath(arrowPath,QPen(Qt::blue,1));
 	 //scene->addPath(createArrow(circlePointsList.at(2),circlePointsList.at(3)),QPen(Qt::blue,1));
 	 scene->addPath(toolLoop,toolPen);
-	 return circlePointsList;
+	 qDebug()<<gCodeCirclesPoints;
+	 return gCodeCirclesPoints;
 	}
 	
 	
@@ -684,18 +749,15 @@ Another class have to deal with the GUI part!
 	 
 	 QPainterPath subLoop;
 	
-	 //generatedPath=new QGraphicsItem();
-	 //toolPathItemGroup=new QGraphicsItemGroup();
+
 	 bool alreadyChecked=false;
-	 int oldPos=0,found=1;
+	 int oldPos=0,found=1,pos=0;
 	 
 	 QPointFWithParent currentPoint(0,0);
 	 QList <QPointFWithParent > pointsListNew;
-	 numberClosedPath=0; 
-	 ///Do we really need that?
-	  ///entitiesListFinal.clear();
+	 
 	 qDebug() << "Dealing with "<<partPathsList.size()<<" Entities represented by "<< pointsList.size()<<"points";
-	 int pos=0;
+	
 	  /**
 	  *for the algorithm to be efficient on open loops we have to start by an unique end point!
 	  *loop until we find a unique point in the list to start with elsewhere go with the first
@@ -710,8 +772,8 @@ Another class have to deal with the GUI part!
 	  *Start the entities reorganisation process until the last 2 points in the list
 	  */ 
 	  /// continue from the last point on circle if had some
-	  if(!gCodeCirclesPoints.isEmpty()) toolLoop.moveTo(gCodeCirclesPoints.last());
-	  qDebug()<< "Continuing from circular holes";
+	  //if(!gCodeCirclesPoints.isEmpty()) toolLoop.moveTo(gCodeCirclesPoints.last());
+	 // qDebug()<< "Continuing from circular holes";
 	 while (pointsList.size()>=2) {
 		 currentPoint=pointsList.at(pos);
 		 // qDebug()<<"Working with"<<currentPoint<< " at "<<pos;		  
@@ -741,13 +803,22 @@ Another class have to deal with the GUI part!
 				 shrink (pointsList,pointsListNew,pos,oldPos);
 				 
 				 /** Will be useful later for TSP optimization*/
+				 pointsListNew.first().setLoopNbr(numberClosedPath);
+				  pointsListNew.last().setLoopNbr(numberClosedPath);
+				  /// todo: check if the start is the end and then don't add it(if open loop have toi add it)
 				 pointsEndList.append(pointsListNew.first());
 				 pointsEndList.append(pointsListNew.last());
+				 /// for testing tro remove
+				 endPointslist.append(pointsListNew.first());
 				 
+				 
+				 /// end testing
 				 toolLoop.lineTo(pointsListNew.first());
 				 
 				 ///It's time to draw the corresponding entity
 				 subLoop.addPath(partPathsList.at(pos/2));
+				 (scene->addText((QString("%1").arg(numberClosedPath)),QFont("Times", 6)))->setPos(pointsListNew.first());;
+				 //subLoop.addText(subLoop.currentPosition(),QFont("Times", 12, QFont::Bold),(QString("loop %1").arg(numberClosedPath)));
 				 partPathsListFinal<< partPathsList.at(pos/2);
 				 partPathsList.removeAt(pos/2);
 				 
@@ -758,15 +829,7 @@ Another class have to deal with the GUI part!
 				 entitiesListFinal<< pointsListNew;
 				// qDebug()<<"The drawn Contour:"<< pointsListNew;
 				 pointsListNew.clear();
-				 //contoursPathItem=scene->addPath(subLoop,contourPen);				 
-				 //toolPathItem=scene->addPath(toolLoop,toolPen);
-				 ///(scene->addPath(subLoop,contourPen))->setFlags(QGraphicsItem::ItemIsSelectable );
-				 ///(scene->addPath(toolLoop,toolPen))->setFlag(QGraphicsItem::ItemIsSelectable, false);
-				 //toolPathItem->setParentItem(generatedPath);
-				 //contoursPathItem->setParentItem(generatedPath);
 				
-				 //toolPathItem.addToGroup(scene->addPath(subLoop,QPen(color,1)));
-				 //contoursPathItem.addToGroup(scene->addPath(toolLoop,QPen(Qt::red,1)));	
 				 partLoopsListFinal<<subLoop;
 				 
 				 //qDebug()<<"Starting a new loop";
@@ -836,7 +899,7 @@ Another class have to deal with the GUI part!
 		}		 
 	}
 	 qDebug () << "Found" << numberClosedPath << "closed Paths";//linesListNew;
-	 ///qDebug()<<"The end points lines list: "<<pointsEndList;
+	 qDebug()<<"The end points lines list: "<<endPointslist;
 	 // qDebug()<<"The parts paths list: "<<partPathsListFinal;
 	 /// mAybe should do further processing to simplify the path 
 	 // qDebug()<<"The simplified parts paths list: "<<partPathsListFinal.at(0).simplified();
@@ -860,7 +923,12 @@ Another class have to deal with the GUI part!
 			}
 		 pos++;
 		}
-	  qDebug()<<"The outline is the " <<posOuter <<"th element"<<entitiesListFinal.size();
+		///we remove the outline from the TSp optimization
+		posOuter=posOuter+nbrCircles;
+		outlinePos=posOuter;
+		endPointslist.removeAt(posOuter);
+	  qDebug()<<"The outline is the " <<posOuter <<"th element of"<<numberClosedPath;
+	  /// we now take the outline of the part and remerber it 
 	  ///UNCOMMENT ME
 	  /// Rearranging list TODO : THE endPoints list have to be rreaaranged too.
 	  ///  entitiesListFinal.append(entitiesListFinal.takeAt(posOuter));
