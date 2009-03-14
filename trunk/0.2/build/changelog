@@ -1,0 +1,35 @@
+ V 0.1.2 : (01-03-09)
++exporting Gcode
++Arc cut 
++circle cut with attack point
++Add edit mode (remove entities)
+merged path generation with Gcode creation
+Code cleanup
+
+V 1.2.3:
++ multipart G-code generation with silmple affine transformation(translation)
+
+V1.3:
++Path optimization through TSP GA
++Step by step animation
++Adopted numbering instead of arrows(make an option?)
+
+
+TODO:
+Detect internal/external contours.
+enforce check for redendunt entities.
+think about exploiting QLINEF ??
+add QTASSERT whenever we deal with a QList.
+switch from QList to QVector:
+
+<marc_office> invite|MkS: use QVector<QPoint>
+<invite|MkS> ?
+<marc_office> QList new's each QPoint when adding
+<marc_office> QList only contains T's by value that are sizeof(T) <= sizeof(void*)
+<marc_office> anything bigger (and QPoint is bigger) is kept as T*'s
+<marc_office> -> one malloc per insertion
+<marc_office> same for QList<double>
+<marc_office> btw
+<invite|MkS> so QList is suitable for which kind of T ?
+<marc_office> any T where sizeof(T) <= sizeof(void*)
+<marc_office> which is many Qt classes, due to d-pointer, but not all
