@@ -4,11 +4,6 @@
 
 #include "dl_creationadapter.h"
 #include <QtGui>
-
-//#define DBL_DIG 4
-//#define FLT_DIG 4
-//const double Pi = 3.14159265358979323846;
-//static const double Pi = 3.14159265358979323846264338327950288419717;
 #include "qpointfwithparent.h"
 class QPointFWithParent;
 
@@ -46,45 +41,31 @@ public:
 	 ///------------------
 	 /** Lines along with arcs and polylines have their end/start points stored within 
 		 pointsPathList
-		 Circles are classified on their own in a Qlist on points (definig their ceners) and
-		 another Qlist holding their respective radis.
+		 Circles are classified on their own in a Qlist of paths (definig their ceners, radis).
 		 Arcs are dealt with in another way as we need 
 	 */
 	 QList <QPainterPath > partPathsList;
 	 QList <QPainterPath > circlePathsList;
 	 
+	  QList <QPointFWithParent > pointsCircleList;
+	 QList <QPointFWithParent > pointsPathList;
 	 
-	 // QList <QGraphicsLineItem *> linesList;	
-
 	 QList <QGraphicsPathItem *> polylinesList;
 	 QList <QPoint *> vertexesList;
 	
-	 
-	 QList <QPointFWithParent > pointsCircleList;
-	 QList <QPointFWithParent > pointsPathList;
-	 
-	 QList <qreal > radiusCircleList;
-	 ///------------------
-	 
 	 /// the resulting part path
 	 QPainterPath partPath;
-	 /// the part boundries
-	 QPainterPath partOutline;
-	 // the list of start end points of entities lines
-	 //QList <QPointF > pointsList; 
-	
+		
 	 /// the digit to round to float values (to still be in  the tolerance)
 	 int precision;
 	 
-	 QRectF partBoundingRect;
-     void printAttributes();
+	 void printAttributes();
 	 bool polylineNew;
 	 bool inBlock;
 	 /// indicates weither ot not it's the first encountred polyline 
 	 bool polylineFirst;
 	 QPainterPath polylineCurrent;
-	 QPainterPath blockCurrent;
-	 //void drawLine (const DL_LineData& data, QWidget *parent  = 0);
+	
 };
 
 #endif

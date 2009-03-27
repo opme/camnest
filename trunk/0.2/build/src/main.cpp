@@ -16,9 +16,12 @@ int main( int argc, char** argv )
 {
 	 // create application
 	 QApplication app( argc, argv );
+	 QCoreApplication::setOrganizationName("Camnest");
+	 QCoreApplication::setOrganizationDomain("Camnest");
+	 QCoreApplication::setApplicationName("Camnest");
 	 app.setApplicationName( "camnest" );
 	 MainWindow	 mainWindow;
-     mainWindow.setGeometry( 100, 100, 1100, 850);
+     //mainWindow.setGeometry( 100, 100, 1100, 850);
 	 //mainWindow.setWindowTitle( "Nested parts" );
      mainWindow.show();
 	 

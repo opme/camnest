@@ -13,13 +13,17 @@ class QPointFWithParent : public QPointF {
      Q_DECLARE_FLAGS(Types, type)
 	 QPointFWithParent::Types parentType;
 	 int parentLoop;
-	 qreal centerX;
-	 qreal centerY;
-	 qreal parentRadius;
+	 double centerX;
+	 double centerY;
+	 QPointF center;
+	 double parentRadius;
+	 double angle1;
+	 double angle2;
 	 bool cWise;
 	 void setLoopNbr(int nbr){ parentLoop=nbr; }
+	 void setCenter(QPointF newCenter){ center=newCenter; centerX=newCenter.x();centerY=newCenter.y();}
 	 /// create by default a point and stores it as a Line
-	 QPointFWithParent (qreal x, qreal y, qreal cx=0,qreal cy=0,qreal radius=0,QPointFWithParent::Types type=0x0,bool cw=true);
+	 QPointFWithParent (double x=0, double y=0, double cx=0,double cy=0,double radius=0,QPointFWithParent::Types type=0x0,bool cw=true, double teta1=0, double teta2=0);
 	 virtual ~QPointFWithParent();
 	 QPointFWithParent operator+= (QPointF point );
 	 QPointFWithParent operator= (const QPointF point ); /// create an overloaded ont to WithParent

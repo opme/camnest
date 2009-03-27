@@ -2,15 +2,18 @@
 
 /// mabe have to create a subclass of withpareznt for lines to be lighter than others as it just 
 
-QPointFWithParent::QPointFWithParent(qreal x, qreal y, qreal cx,qreal cy,qreal radius,QPointFWithParent::Types type,bool cw):QPointF(){
+QPointFWithParent::QPointFWithParent(double x, double y, double cx,double cy,double radius,QPointFWithParent::Types type,bool cw,double teta1,double teta2):QPointF(){
 	 setX(x);
 	 setY(y); 
 	 parentType=type;
 	 centerX=cx;
 	 centerY=cy;
+	 center=QPointF(cx,cy);
 	 cWise=cw;
 	 parentRadius=radius;
 	 parentLoop=0;
+	 angle1=teta1;
+	 angle2=teta2;
 	}
 QPointFWithParent::~QPointFWithParent()
 {
@@ -23,6 +26,7 @@ QPointFWithParent QPointFWithParent::operator+= ( QPointF point ){
 	 if (this->parentType==QPointFWithParent::Arc) {
 	     this->centerX+=point.x();
 		 this->centerY+=point.y();
+		 this->center=point;
 		}
 	 //qDebug()<< point.x();
 	 return *this; 

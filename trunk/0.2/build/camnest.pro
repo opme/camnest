@@ -49,15 +49,20 @@ CONFIG(debug, debug|release) {
 
 SOURCES	= src/main.cpp \
 	src/test_creationclass.cpp \
-	src/renderpath.cpp \
-	src/window.cpp \
 	src/sheet.cpp \
-	src/parts.cpp
+	src/qpointfwithparent.cpp \
+	src/gcode.cpp \
+	src/gatsp.cpp \
+	hole.cpp \
+	src/part.cpp
 
 LIBS	= ../libs/libdxflib.a
 INCLUDEPATH	= src/dxflib
 HEADERS	= src/test_creationclass.h \
-	src/renderpath.h \
-	src/window.h \
 	src/sheet.h \
-	src/parts.h
+	src/qpointfwithparent.h \
+	src/gcode.h \
+	src/gatsp.h \
+	hole.h \
+	src/part.h
+FORMS	= src/settingsdialog.ui

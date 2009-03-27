@@ -37,8 +37,6 @@ Test_CreationClass::Test_CreationClass() {
       inBlock=false;
 	  partPath.moveTo( 0,0);
 	  partPath.setFillRule(Qt::WindingFill);
-	 // QPointFWithParent a(20,20,QPointFWithParent::Arc);
-	 // qDebug() <<a.parentType;
 }
 
 /**
@@ -81,19 +79,10 @@ void Test_CreationClass::addLine(const DL_LineData& data) {
 		}		 
 	 partPath.moveTo( p1);
 	 partPath.lineTo( p2);
-	 partBoundingRect=partPath.controlPointRect();
-	 //QList<QGraphicsItem *> colidesWith= line->collidingItems ( Qt::IntersectsItemShape );
-	 // qDebug()<< line->collidesWithPath(partPath);
-
-	 //qDebug() << "intersect with " << colidesWith.size();
-	 //linesList.append(line);
-	 //pointsList.append( p1);
-	 //pointsList.append( p2);
-	 //partPathsList.append(&partPath);/// maybe add a type column to the list holding the path nature ; line; vertex; circle...
-	 //  qDebug() << "line "<<data.x1<< data.y1<< data.x2<< data.y2;
-    }
+	}
 	
-	QPainterPath Test_CreationClass::drawArc( const QPointFWithParent & startPoint, const QRectF & rectangle, qreal startAngle, qreal sweepAngle) {
+	
+QPainterPath Test_CreationClass::drawArc( const QPointFWithParent & startPoint, const QRectF & rectangle, qreal startAngle, qreal sweepAngle) {
      QPainterPath arcEntity=QPainterPath ();
 	 arcEntity.moveTo(startPoint);
 	  /// Clockwise arcs can be specified using negative angles(selon doc Qt) fabs or qAbs ?
@@ -102,14 +91,15 @@ void Test_CreationClass::addLine(const DL_LineData& data) {
     }
 
 void Test_CreationClass::addArc(const DL_ArcData& data) {
-
+		double ret=180;
+		 static const double Pi = 3.14159265358979323846264338327950288419717;
 	 if (inBlock) return;	
 	 double teta1=data.angle1,teta2=data.angle2,sweep;
 	 bool cw=true;
 	// qDebug()<<teta1<<teta2;
 	 //if teta1==0 teta1=360;
 	 if (teta1>teta2) { /// have to go clockwise or swap values
-	     teta2=360+teta2;
+	     teta2=ret*2+teta2;
 		}
 		 //sweep=data.angle2-data.angle1;
 		 // if (sweep>0) {qDebug()<<"counter clockwise arc";cw=false;}
@@ -119,10 +109,12 @@ void Test_CreationClass::addArc(const DL_ArcData& data) {
 		to P1 and counterClockwise to P2 this way when we organsie the entities and start from p2 instead 
 		from p1 the G2/G3 codes are coretly assigned!
 		*/
-	 QPointFWithParent p1(data.cx + cos((teta1)*M_PI/180) * data.radius,data.cy + sin((teta1)*M_PI/180) * data.radius,data.cx ,data.cy ,data.radius,QPointFWithParent::Arc,cw);
-	 QPointFWithParent p2(data.cx + cos((teta2)*M_PI/180) * data.radius,data.cy + sin((teta2)*M_PI/180) * data.radius,data.cx ,data.cy ,data.radius,QPointFWithParent::Arc,!cw);
+	 QPointFWithParent p1(data.cx + cos((teta1)*Pi/ret) * data.radius,data.cy + sin((teta1)*Pi/ret) * data.radius,data.cx ,data.cy ,data.radius,QPointFWithParent::Arc,cw,teta1,teta2);
+	 QPointFWithParent p2(data.cx + cos((teta2)*Pi/ret) * data.radius,data.cy + sin((teta2)*Pi/ret) * data.radius,data.cx ,data.cy ,data.radius,QPointFWithParent::Arc,!cw,teta1,teta2);
+	 
+	 QPointF p3(data.cx + cos((teta2)*M_PI/ret) * data.radius,data.cy + sin((teta2)*Pi/ret) * data.radius);
 	 QRectF boundingRect(data.cx-data.radius, data.cy-data.radius,2*data.radius,2*data.radius);
-
+	qDebug()<<data.cx <<cos((teta2)*M_PI/ret) *data.radius;
 	 
 	 QPainterPath arcTemp=drawArc(p1,boundingRect,teta1,teta1-teta2);
 	 /// store the line in the paths list if not already present, some CAD frawinfg contains repeated entities
@@ -139,6 +131,8 @@ void Test_CreationClass::addArc(const DL_ArcData& data) {
 	 
 	 partPath.moveTo(p1);
 	 partPath.arcTo(boundingRect,-(teta1),-qAbs(teta1-teta2));
+	 	 qDebug() << "Drawn arc ends at:" <<partPath.currentPosition();
+	 qDebug() << "Expected arc ends at:" <<p3;
 }
 
 QPainterPath Test_CreationClass::drawCircle( const QPointFWithParent &centerPoint) {
@@ -150,8 +144,7 @@ QPainterPath Test_CreationClass::drawCircle( const QPointFWithParent &centerPoin
 	 pointsCircleList.append(centerPoint);
 	 /// move by radius to touch the circle
 	 ///pointsCircleList.append(touchCircle);
-	 ///FIXME: clean up : WE don't need radiusCircleList anymore 
-	 radiusCircleList.append(radius);
+
 	 circleEntity.addEllipse(centerPoint,radius,radius);
 	 return circleEntity; 
     }

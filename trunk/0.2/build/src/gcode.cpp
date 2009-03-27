@@ -1,7 +1,7 @@
 #include "gcode.h"
 
  GCode::GCode( QFile *file):QTextStream (file) {
-	 lineNumber=0;cncMode=1;
+	 lineNumber=0;cncMode=0;
 	 lastX=lastY=lastZ=homeX=homeY=homeZ=0; /// change to Home pos from settings
 	 lastgcode="G90";
 	 ///some stupid cam soft do need the trailing zeros to work like ncplot!!!
@@ -115,7 +115,7 @@ qreal radius;
 		 /// go to the center with G0
 		 rapidMove( circleCenter.x(),circleCenter.y(),0);
 		 ///start cutting till being onthe circle
-		 if (cncMode==0) { /// cncMode=0 if we are cutting plamsa (the default mode)
+		 if (cncMode==1) { /// cncMode=1 if we are cutting plamsa (the default mode)
 		 feedRateMove( attackPoint.x(),attackPoint.y(),0);	
 		 /// now that we are on the circle cut it
 		 ArcCut(attackPoint.x(),attackPoint.y(),0,circleCenter.x()-attackPoint.x(),circleCenter.y()-attackPoint.y(),0);

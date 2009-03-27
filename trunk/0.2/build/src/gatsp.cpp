@@ -72,7 +72,7 @@ Chromosome child;
 		 ///content[i+1]=child;
 		 //qDebug()<<"Generated"<<child.elements<<" route="<< child.routeLength;
 		 //qDebug()<<"from parents"<< parentOne.elements<<parentTwo.elements;
-		 ///qDebug()<<"Generated"<< child.routeLength<<"from parents"<<parentOne.routeLength<<parentTwo.routeLength;
+		  ///qDebug()<<"Generated"<< child.routeLength<<"from parents"<<parentOne.routeLength<<parentTwo.routeLength;
 		 ///if (child.routeLength >parentOne.routeLength) {child=parentOne;}
 		 ///if (child.routeLength >parentTwo.routeLength) {child=parentTwo;}	 
 		 //qDebug()<<"Starting Mutation";
@@ -746,7 +746,10 @@ Population::~Population(){
 	}
 	
 	
-Chromosome::~Chromosome(){
-	
-	
+Chromosome::~Chromosome(){	
 	}
+	
+	void GAThread::run()
+ {
+     
+ }

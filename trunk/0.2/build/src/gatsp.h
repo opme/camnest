@@ -67,4 +67,13 @@ public:
 	 Chromosome *crossover(Chromosome *parent1, Chromosome *parent2);
 };
 
+ class GAThread : public QThread
+ {
+     Q_OBJECT
+
+ protected:
+     void run();
+ };
+
+ 
 #endif // GATSP_H

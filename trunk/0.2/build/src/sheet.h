@@ -2,16 +2,33 @@
 #define SHEET_H
 #include <QtGui>
 #include <QWidget>
-  
+   ///CONFIG DIALOG INTERFACE
+  #include "ui_settingsdialog.h"
 ///LibDxf headers  
 #include "dl_dxf.h"
+#include "part.h"
 #include "dl_creationadapter.h"
 #include "test_creationclass.h"
   //
 
- 
+typedef QList <QPointFWithParent > QPFWPList;
+typedef  QList <QPainterPath > QPPList;
   
-   class SheetMetal: public QWidget  /// could be a Qview directly ???
+
+/**
+T qgraphicsitem_cast ( QGraphicsItem * item )
+
+Returns the given item cast to type T if item is of type T; otherwise, 
+0 is returned.
+
+Note: To make this function work correctly with custom items, reimplement
+the {QGraphicsItem::}{type()} function for each custom QGraphicsItem subclass.
+
+See also QGraphicsItem::type() and QGraphicsItem::UserType.
+
+*/
+
+  class SheetMetal: public QWidget  /// could be a Qview directly ???
  {
      Q_OBJECT
 
@@ -33,22 +50,46 @@
   
   public:
      Sheet(QWidget *parent = 0);
-	 QGraphicsItem *selectedItem;
-	 QGraphicsLineItem *test;
-	 QGraphicsItemGroup *selection;
-	 void moveTool(int currentLoop);
+	 void moveTool(QPointFWithParent endPoint);
 	 QBasicTimer timer;
-	
-  protected:
-     void mousePressEvent(QGraphicsSceneMouseEvent *mouseEvent);
+	 void zoomFit();
+	 QPen toolPen;
+	 QSettings settings;
+	 
+	 protected:
+     // void mousePressEvent(QGraphicsSceneMouseEvent *mouseEvent);
      void mouseMoveEvent(QGraphicsSceneMouseEvent *mouseEvent);
-	 void mouseReleaseEvent(QGraphicsSceneMouseEvent *mouseEvent);
+	 //void mouseReleaseEvent(QGraphicsSceneMouseEvent *mouseEvent);
      void wheelEvent(QGraphicsSceneWheelEvent *mouseEvent);
 	 void timerEvent(QTimerEvent *event);
+	
+	signals:
+	void progressionDone(const int currentLoop);
 	
      
  
  };
+ 
+  class SettingsDialog : public QWidget {
+     Q_OBJECT
+
+	 public:
+     SettingsDialog(QWidget *parent = 0);
+	 QSettings settings;
+	 public slots:
+	 void setPenColor();
+	 void setBrushColor();
+	 void setInner();
+	 void save();
+	 void loadSettings();
+	 
+     //void on_inputSpinBox1_valueChanged(int value);
+     //void on_inputSpinBox2_valueChanged(int value);
+	 private:
+     Ui::SettingsDialog ui;
+ };
+ 
+ 
  
  class MainWindow : public QMainWindow
 {
@@ -59,18 +100,23 @@ public:
 	 void createStatusBar();
 	 void createToolBars();
 	 void createMenus();
-	 void addArc(double cx,double cy,double radius,double teta1,double teta2);
-	 
-	 QList <QList<QPointFWithParent  > > organiseEntities(QList <QPointFWithParent > pointsList,QList <QPainterPath > partPathsList);
-	 ///every list contains only one memeber a circle but we need to declareas a list of lists so we can merge it with above one
-	 QList <QList<QPointFWithParent  > >  addCircles(QList <QPointFWithParent > circlePointsList,QList <QPainterPath > circlesPathsList);
-	 /// remove a point from the list
-	 void shrink(QList <QPointFWithParent > &pointsList,QList <QPointFWithParent > &pointsListNew,int pos,int oldPos);
-	 ///find a lonley point if any or repreted one
-	 int newPos(QList <QPointFWithParent > pointsList);
-	 SheetMetal *sheet;
-	 SheetMetal *pathSheet;
- 
+	 void createActions();
+	 void createConnections();
+	 void readSettings();
+	 void writeSettings();
+	 void createDockWindows();
+	 void openPart(QString file);
+	 void trigActions (bool status);
+	 //SheetMetal *sheet;
+	 //SheetMetal *pathSheet;
+     QGraphicsView *previewSheet;
+     QGraphicsView *sheet;
+	  QDockWidget *dock ;
+	  
+	  
+	  QPen contourPen;
+	  QBrush contourBrush;
+	  
    private:
      QAction *aboutAction;
      QAction *openAction;
@@ -81,55 +127,60 @@ public:
      QAction *mirrorAction;
 	 QAction *yMirror;
 	 QAction *rotateAction; 
-     QAction *generateAction;
+	 QAction *previewDockAction;
+     // QAction *generateAction;
 	 QAction *saveAction;
 	 QAction *stepAction;
 	 QAction *simulateAction;
 	 QAction *zoomFitAction;
+	 QAction *insertAction;
+	 QAction *settingsAction;
 	 
      QMenu *fileMenu;
 	 
      QToolBar *fileToolBar;
      QToolBar *editToolBar;
 	 
+	 QProgressBar *loadingBar;
+	 QDirModel *model ;
 	 QListView *piecesList;
+	 QSplitter *horSplitter;
+	 QListView *tree;
+	 SettingsDialog settingsDlg; 
+	
+	 QSettings settings;
+	 
+	 
+	 public slots:
+	 void openFile();
+	 void progressionDone(int currentLoop);
 	 
    private slots:
+   /// TODO: check for type return
      void about();
-	 void openFile();
+	 void openSelected(const QModelIndex & index);
+	  void descStep( const QString desc);
+	  
+	
 	 bool saveFile();
 	 void clearScene();
 	 void rotateParts();
-	 void generatePath();
+	 void showSettings();
+	 //void generatePath();
 	 void stepByStep();
 	 void zoomFit();
 	 void optimize();
 	 void deleteItems();
+	 void insert();
+	 bool maybeSave();
+	 protected:
+	 virtual void closeEvent(QCloseEvent *event);
   };
-  
-  
-  
-  /// Note: if public QObject isn't declared the macro will fail when compiling   
-class Part: public QObject,public QGraphicsItem { 
-  Q_OBJECT
- 
-  public:
-     Part(QWidget *parent = 0);	
-	  /// implemant the virtual public functions to make them our class specifec
-	   QRectF boundingRect() const
-     {
-         qreal penWidth = 1;
-         return QRectF(-10 - penWidth / 2, -10 - penWidth / 2,
-                       20 + penWidth / 2, 20 + penWidth / 2);
-     }
-	 void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget);
-	 
- };
-	 QPointFWithParent translateEntity(QPointFWithParent oldPoint, QPointF offset);
+
      double getAngle(QPointF start_point,QPointF end_point);
 	 QPointF ArrowWing1(double line_angle,QPointF end_point);
 	 QPointF ArrowWing2(double line_angle,QPointF end_point);
-
-	
+	 void drawArc(QPointFWithParent point,QPainterPath &pathToModify);
+	 void createLeads(QPainterPath loopPath,int loopPos);
   
   #endif 
