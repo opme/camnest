@@ -1,7 +1,7 @@
 #include "gcode.h"
 
  GCode::GCode( QFile *file):QTextStream (file) {
-	 lineNumber=0;cncMode=0;
+	 lineNumber=0;plasmaMode=true;
 	 lastX=lastY=lastZ=homeX=homeY=homeZ=0; /// change to Home pos from settings
 	 lastgcode="G90";
 	 ///some stupid cam soft do need the trailing zeros to work like ncplot!!!
@@ -69,21 +69,35 @@ qreal radius;
 				 point.setY(endPoint.y());
 				}
 			 else if (point.parentType==QPointFWithParent::Circle) {
+				  qDebug()<<"Writing g code of circle";
 				 circleCenter=point;
 				 radius=point.parentRadius;
-				 attackPoint=QPointF(point.x()+radius,point.y());
-				 ///attackPoint=circleLoop.at(pos+1);
+				 ///We are already on the attack point : todo: enforce this 
+				 attackPoint=QPointF(lastX,lastY);///
+				 ///We touch the circle
 				 
+				/// FiXMe : the rais are not well drawn
+				
+				
 				 /// go to the center with G0
-				 rapidMove( circleCenter.x(),circleCenter.y(),0);
+				 ///rapidMove( circleCenter.x(),circleCenter.y(),0);
 				 ///start cutting till being onthe circle
-				 if (cncMode==1) { /// cncMode=1 if we are cutting plamsa (should be the default mode)
-					 feedRateMove( attackPoint.x(),attackPoint.y(),0);	
+				 if (plasmaMode) { /// cncMode=1 if we are cutting plamsa (should be the default mode)
+					 ///feedRateMove( attackPoint.x(),attackPoint.y(),0);	
 					 /// now that we are on the circle cut it
+					 feedRateMove(point.x()+radius,point.y()+radius);
+					 qDebug()<<attackPoint;
+					 qDebug()<<point;
+					 attackPoint=QPointF(point.x()+radius,point.y()+radius);
 					 ArcCut(attackPoint.x(),attackPoint.y(),0,circleCenter.x()-attackPoint.x(),circleCenter.y()-attackPoint.y(),0);
 					}
 				else {
-					ArcCut(circleCenter.x(),circleCenter.y(),0,circleCenter.x()-attackPoint.x(),circleCenter.y()-attackPoint.y(),0);
+				
+					 attackPoint=QPointF(point.x()+radius,point.y()+radius);
+					 //feedRateMove(point.x()+radius,point.y()+radius);
+					 rapidMove( circleCenter.x(),circleCenter.y(),0);
+					 //ArcCut(attackPoint.x(),attackPoint.y(),0,circleCenter.x()-attackPoint.x(),circleCenter.y()-attackPoint.y(),0);
+					 ArcCut(circleCenter.x(),circleCenter.y(),0,circleCenter.x()-attackPoint.x(),circleCenter.y()-attackPoint.y(),0);
 					}		
 				 pos++;	
 				}
@@ -103,31 +117,6 @@ qreal radius;
 		}	
 	}	
 	
-	 
-
-	void GCode::writeCircleLoop(QList<QPointFWithParent> circleLoop,QList<qreal> circlesRadius,int cncMode ){
-	 int pos=0;
-	 while (pos <= circleLoop.size()-2){
-	 /// Todo maybe should replace regular QPOINTF with QPointFWithParent and get rid of Qlist circles attackpoint
-		 circleCenter=circleLoop.at(pos);
-		 attackPoint=circleLoop.at(pos+1);
-		 radius=circlesRadius.at(pos/2);
-		 /// go to the center with G0
-		 rapidMove( circleCenter.x(),circleCenter.y(),0);
-		 ///start cutting till being onthe circle
-		 if (cncMode==1) { /// cncMode=1 if we are cutting plamsa (the default mode)
-		 feedRateMove( attackPoint.x(),attackPoint.y(),0);	
-		 /// now that we are on the circle cut it
-		 ArcCut(attackPoint.x(),attackPoint.y(),0,circleCenter.x()-attackPoint.x(),circleCenter.y()-attackPoint.y(),0);
-		}
-		else {
-		 ArcCut(circleCenter.x(),circleCenter.y(),0,circleCenter.x()-attackPoint.x(),circleCenter.y()-attackPoint.y(),0);
-		}
-		 
-		  pos=pos+2;
-		}
-	
-	}
 	 void GCode::ArcCut (qreal X,qreal Y,qreal Z,qreal I,qreal J,qreal radius,bool cw){
 	 ///add counterClockwise case handle
 	 if (!cw){
@@ -156,7 +145,10 @@ qreal radius;
 		 if (Y!=lastY) 	 appendNumCode ("Y",Y);	 
          ///appendNumCode ("Z",Z);	 
 		 cartidgeReturn();
+		 lastX=X;
+		 lastY=Y;
 		}
+		
 	}
 	
 	
@@ -169,6 +161,8 @@ qreal radius;
 		 if (Y!=lastY) 	 appendNumCode ("Y",Y);	 	
 		 ///appendNumCode ("Z",Z); 
 		 cartidgeReturn();
+		 lastX=X;
+		 lastY=Y;
 		}
 	}	
 	
@@ -199,4 +193,5 @@ qreal radius;
 	 comment("program End");
 	 appendCode ("M2");	
 	}
+	
 	

@@ -26,14 +26,14 @@ class QPointFWithParent;
 	 GCode( QFile *file);
 	 void writeHeader(QString filename);
 	 void writeClosedLoop(QList<QPointFWithParent > closedLoop);
-	 void writeCircleLoop(QList<QPointFWithParent> circleLoop, QList<qreal>  circlesRadius,int cncMode);
+	 //void writeCircleLoop(QList<QPointFWithParent> circleLoop, QList<qreal>  circlesRadius,int cncMode);
 	 void writeEnd();
 	 void comment(QString comment);
 	 void addLineNumber ();
 	 
 	 void home();
-	 void rapidMove (qreal X, qreal Y,qreal Z);
-	 void feedRateMove (qreal X,qreal Y,qreal Z);
+	 void rapidMove (qreal X, qreal Y,qreal Z=0);
+	 void feedRateMove (qreal X,qreal Y,qreal Z=0);
 	 
 	 void ArcCut (qreal X,qreal Y,qreal Z,qreal I,qreal J,qreal radius,bool cw=true);
 	 
@@ -43,8 +43,8 @@ class QPointFWithParent;
 	 void setOffset(QPointF val) {offset=val;}
 	/// virtual ~GCode();
 	 
-	   //private:
-	   int cncMode;
+	   ///private:
+	 bool plasmaMode;
 	 QString fileName;
 	 int lineNumber;
 	 qreal lastX, lastY,lastZ ,homeX, homeY, homeZ;

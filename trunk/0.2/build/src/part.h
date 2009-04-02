@@ -9,10 +9,13 @@ the lead-in out points
 typedef QList <QPointFWithParent > QPFWPList;
 typedef  QList <QPainterPath > QPPList;
 
+
+
+
 class Part: public QGraphicsItem
  /// Qobject is needed for signals 
  {
-///Q_OBJECT
+	///Q_OBJECT
 public:
 	 ///TODO: cleanup this constructor
 	 Part(const QPainterPath shape, QRectF rect,QPFWPList pointsList,QPPList partPathsList,QPFWPList circlePointsList,QPPList circlesPathsList);
@@ -23,6 +26,9 @@ public:
 	 QPainterPath shape() const;
 	 QSettings settings;
 	 QRectF qtRect ;
+	 
+	 
+	
 	 QPainterPath partShape;
 	 /// By default the text ath isn't displayed in the sheet metal (only in the preview scene)
 	 QPainterPath partText;
@@ -35,6 +41,9 @@ public:
 	 
 	 ///how many closed loops in the part
 	 int nbrClosedPath;int nbrCircles;int outlinePos;
+	 
+	 QList <int > procededLeads;
+	 
 	 ///the loops end/start points
 	 QPFWPList endPointslist;
 	 	/// the same as above but afetr TSp optimizastion
@@ -49,19 +58,32 @@ public:
 	 QPPList cirPathsList;
 	
 	 /// stiores the organised entities Start/end points.
-	 QList < QPFWPList> gCodePoints;
+	 QList < QPFWPList> gCodeEntities;
   
     /// stiores the organised entities Start/end points after TSp optim.
-	 QList < QPFWPList> gCodePointsOpt;
+	 QList < QPFWPList> gCodeEntitiesOpt;
 
 	 /// stiores the organised entities Start/end points coordinates in a Sheet metal (afetr trabsformaton being applied)
-	 QList < QPFWPList> gCodePointsTrans;
+	 QList < QPFWPList> gCodeEntitiesTrans;
 	 
-	 QPointFWithParent outlinePoint;
+	 
+	 // stiores the lead/in out points and them rect
+	 //QList < QRectF> leadsRect;
 	
+	  /// stiores the lead/in out points 
+	  QPFWPList leadsPoints;
 	 ///used for matrix transfrom.
 	 QPointF position;
 	 QPointF deltaPos;
+
+	 QPointFWithParent outlinePoint;
+	 QPainterPath outLinePath;
+	  void createLeads(QPainterPath myLoopPath,const int loopPos);
+	 void createOutlineLead();
+	 void createLead();
+	 void generateLeads();
+	 void  findOutline();
+	 
 	 QList <QPFWPList>  filterCircles();
 	
 	 QList <QPFWPList > filterLoops();
@@ -72,13 +94,13 @@ public:
 	 /// we use the QGraphicsItem default implementation for those events
 	 void drawArc(QPointFWithParent point,QPainterPath &pathToModify);
 	 QPointFWithParent translateEntity(QPointFWithParent oldPoint, QPointF offset);
-	void  findOutline();
+	
 	void optimize();
 	 void moveMeBy(qreal dx, qreal dy);
 	 void setPartPos(){
 		 position=pos();
 		}
-	 
+	
 	 /** this matrix holds the transformations applied to the part, transformations can be one of the following:
 	 / translation , rotation ,shearing. wWe'll discard shearing and keep both translation and rotation
 	 / therefor  x' = m11*x + m21*y + dx
@@ -98,7 +120,7 @@ public:
 	 
 	 
 	 ///signals:
-	 ///void progressionStep(int currentStep);
+	 ///void progressionStep();
 	 ///void descStep( QString desc);
 	 
 	 protected:

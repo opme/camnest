@@ -54,27 +54,22 @@ void Test_CreationClass::addLine(const DL_LineData& data) {
 
 	 if (inBlock) return;
 	
-	 QPointFWithParent p1( data.x1, data.y1);
-	 QPointFWithParent p2( data.x2, data.y2);
+	 QPointFWithParent p1( roundMe(data.x1), roundMe(data.y1));
+	 QPointFWithParent p2( roundMe(data.x2),roundMe(data.y2));
 	 /// if a line ending= it's begining have to skip it (may occur in some poorly coded cad)
 	 if ( p1==p2 ) return;
 	 
-	 /// TODO:check if we previously had added this line
-	 ///if (pointsPathList.count(p1)!=0 || pointsPathList.count(p2)!=0 ) {
-		 
-		/// pos=pointsPathList.indexOf(p1,pos+1);
-		 
-		///}
-	 pointsPathList.append( p1);
-	 pointsPathList.append( p2);
+	 /// TODO:check if we previously had added this line to avoid crashes
 	  
 	 QPainterPath lineTemp=drawLine(p1,p2);
 	 /// store the line in the paths list if not already present, some CAD frawinfg contains repeated entities
 	 if (!partPathsList.contains(lineTemp)){
-		 partPathsList.append(lineTemp);		 
+		 partPathsList.append(lineTemp); 
+		 pointsPathList.append( p1);
+		 pointsPathList.append( p2);		 
 		 }
 	 else{
-		qDebug () << "line already present skipping...";
+		qDebug () << "WARNING: line already present skipping...the part may be corrupted!!";
 		return;
 		}		 
 	 partPath.moveTo( p1);
@@ -91,8 +86,8 @@ QPainterPath Test_CreationClass::drawArc( const QPointFWithParent & startPoint, 
     }
 
 void Test_CreationClass::addArc(const DL_ArcData& data) {
-		double ret=180;
-		 static const double Pi = 3.14159265358979323846264338327950288419717;
+	  double ret=180;
+	 //static const double Pi = 3.14159265358979323846264338327950288419717;
 	 if (inBlock) return;	
 	 double teta1=data.angle1,teta2=data.angle2,sweep;
 	 bool cw=true;
@@ -109,12 +104,15 @@ void Test_CreationClass::addArc(const DL_ArcData& data) {
 		to P1 and counterClockwise to P2 this way when we organsie the entities and start from p2 instead 
 		from p1 the G2/G3 codes are coretly assigned!
 		*/
-	 QPointFWithParent p1(data.cx + cos((teta1)*Pi/ret) * data.radius,data.cy + sin((teta1)*Pi/ret) * data.radius,data.cx ,data.cy ,data.radius,QPointFWithParent::Arc,cw,teta1,teta2);
-	 QPointFWithParent p2(data.cx + cos((teta2)*Pi/ret) * data.radius,data.cy + sin((teta2)*Pi/ret) * data.radius,data.cx ,data.cy ,data.radius,QPointFWithParent::Arc,!cw,teta1,teta2);
+		
+	 QPointFWithParent p1(getPoint(data.cx,teta1,data.radius,true),getPoint(data.cy,teta1,data.radius,false),data.cx,data.cy ,data.radius,QPointFWithParent::Arc,cw,teta1,teta2);
+	 QPointFWithParent p2(getPoint(data.cx,teta2,data.radius,true),getPoint(data.cy,teta2,data.radius,false),data.cx,data.cy ,data.radius,QPointFWithParent::Arc,!cw,teta1,teta2);
+	 ///QPointFWithParent p1(data.cx + cos((teta1)*M_PI/ret) * data.radius,data.cy + sin((teta1)*M_PI/ret) * data.radius,data.cx ,data.cy ,data.radius,QPointFWithParent::Arc,cw,teta1,teta2);
+	 ///QPointFWithParent p2(data.cx + cos((teta2)*M_PI/ret) * data.radius,data.cy + sin((teta2)*M_PI/ret) * data.radius,data.cx ,data.cy ,data.radius,QPointFWithParent::Arc,!cw,teta1,teta2);
 	 
-	 QPointF p3(data.cx + cos((teta2)*M_PI/ret) * data.radius,data.cy + sin((teta2)*Pi/ret) * data.radius);
+	 QPointF p3(data.cx + cos((teta2)*M_PI/ret) * data.radius,data.cy + sin((teta2)*M_PI/ret) * data.radius);
 	 QRectF boundingRect(data.cx-data.radius, data.cy-data.radius,2*data.radius,2*data.radius);
-	qDebug()<<data.cx <<cos((teta2)*M_PI/ret) *data.radius;
+	
 	 
 	 QPainterPath arcTemp=drawArc(p1,boundingRect,teta1,teta1-teta2);
 	 /// store the line in the paths list if not already present, some CAD frawinfg contains repeated entities
@@ -122,7 +120,7 @@ void Test_CreationClass::addArc(const DL_ArcData& data) {
 		 partPathsList.append(arcTemp);		 
 		 }
 	 else{
-		qDebug () << "Arc already present skipping...";
+		qDebug () << "Arc already present skipping...the part may be corrupted!!";
 		return;
 		}
 
@@ -131,32 +129,48 @@ void Test_CreationClass::addArc(const DL_ArcData& data) {
 	 
 	 partPath.moveTo(p1);
 	 partPath.arcTo(boundingRect,-(teta1),-qAbs(teta1-teta2));
-	 	 qDebug() << "Drawn arc ends at:" <<partPath.currentPosition();
+	 qDebug() << "started arc  at:"<<p1;
+	 qDebug() << "Drawn arc ends at:" <<partPath.currentPosition();
+	 qDebug() << "Expected arc ends at:" <<p2;
 	 qDebug() << "Expected arc ends at:" <<p3;
 }
 
 QPainterPath Test_CreationClass::drawCircle( const QPointFWithParent &centerPoint) {
      QPainterPath circleEntity=QPainterPath ();
-	  qreal radius=centerPoint.parentRadius;
-	 QPointFWithParent touchCircle=centerPoint;//(centerPoint.x()+radius,centerPoint.y(),QPointFWithParent::Circle);
-	 touchCircle.setX(centerPoint.x()+centerPoint.parentRadius);
-	 
-	 pointsCircleList.append(centerPoint);
-	 /// move by radius to touch the circle
-	 ///pointsCircleList.append(touchCircle);
-
+	 qreal radius=centerPoint.parentRadius;
 	 circleEntity.addEllipse(centerPoint,radius,radius);
 	 return circleEntity; 
     }
 
-/**
+	
+	double Test_CreationClass::roundMe(double val){
+	 return (qRound(val* 1000000.0) / 1000000.0);
+	}
+	
+	double Test_CreationClass::getPoint(double pos,double teta1,double radius,bool cosin){
+	 double ret=180;
+	 if (cosin){
+	 return (qRound((pos + cos((teta1)*M_PI/ret) * radius)* 1000000.0) / 1000000.0);
+	 }
+	 else {
+	 return (qRound((pos + sin((teta1)*M_PI/ret) * radius)* 1000000.0) / 1000000.0);
+	 }
+	}
+	///To deal with the round problem we trim to 7 digits (maybe has to be an option?
+
+	/**
  * Circles are special entities as they 're defined only be a unique point, their center (and the radius)
  */
 void Test_CreationClass::addCircle(const DL_CircleData& data) {
      if (inBlock) return;
+	 QPointFWithParent center(data.cx,data.cy,data.cx,data.cy,data.radius,QPointFWithParent::Circle);
 	 
-	 circlePathsList.append(drawCircle(QPointFWithParent(data.cx,data.cy,data.cx,data.cy,data.radius,QPointFWithParent::Circle)));
-	 
+	 if (circlePathsList.contains(drawCircle(center))){
+		qDebug () << "Circle already present skipping...the part may be corrupted!!";
+		return;
+		}
+	 pointsCircleList.append(center);
+	 circlePathsList.append(drawCircle(center));	 
 	 //QGraphicsEllipseItem *ellipse = new QGraphicsEllipseItem (data.cx, data.cy, data.radius,data.radius);
 	 //ellipsesList.append(ellipse);
 	 partPath.addEllipse(QPointF(data.cx, data.cy), data.radius,data.radius);
@@ -236,7 +250,7 @@ void Test_CreationClass::addVertex(const DL_VertexData& data) {
     // printf("VERTEX   (%6.3f, %6.3f, %6.3f) %6.3f\n",data.x, data.y, data.z,data.bulge);
      // printAttributes();
 	 if (inBlock) return;
-     QPoint vertex ( data.x, data.y );
+     QPoint vertex ( roundMe(data.x), roundMe(data.y) );
 	 vertexesList.append(&vertex);
 	 /// FIXME handle the case: a vertex is encountered which isn't a part of polyline !!
 	 

@@ -8,7 +8,9 @@ class QPointFWithParent : public QPointF {
          Line = 0x0,
          Arc = 0x1,
          Circle = 0x2,
-         Polyline = 0x3
+         Polyline = 0x3,
+		 LeadCertain=0x4,
+		 LeadUncertain=0x5
      };
      Q_DECLARE_FLAGS(Types, type)
 	 QPointFWithParent::Types parentType;
@@ -16,11 +18,17 @@ class QPointFWithParent : public QPointF {
 	 double centerX;
 	 double centerY;
 	 QPointF center;
+	 QPointF leadTouch;
 	 double parentRadius;
 	 double angle1;
 	 double angle2;
 	 bool cWise;
+	 ///TODO : use inline functions here 
+	 void setLeadTouch(QPointF myLeadTouch){ leadTouch=myLeadTouch;}
+	 
+	 /// TODO: rename to setParentLoop for homongenity
 	 void setLoopNbr(int nbr){ parentLoop=nbr; }
+	 void setParentType(QPointFWithParent::Types type ){  parentType=type; }
 	 void setCenter(QPointF newCenter){ center=newCenter; centerX=newCenter.x();centerY=newCenter.y();}
 	 /// create by default a point and stores it as a Line
 	 QPointFWithParent (double x=0, double y=0, double cx=0,double cy=0,double radius=0,QPointFWithParent::Types type=0x0,bool cw=true, double teta1=0, double teta2=0);

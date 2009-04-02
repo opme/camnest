@@ -16,14 +16,14 @@
 
 XUPProjectSettings {
 	EDITOR	= QMake
-	EXECUTE_DEBUG	= camnest_debug
+	EXECUTE_DEBUG	= build/camnest_debug
 	QT_VERSION	= Qt System (4.4.3)
 }
 
 TEMPLATE	= app
 LANGUAGE	= C++/Qt4
 TARGET	= $$quote(camnest)
-CONFIG	+= debug_and_release
+CONFIG	+= debug warn_on
 BUILD_PATH	= ./build
 
 CONFIG(debug, debug|release) {
@@ -54,7 +54,8 @@ SOURCES	= src/main.cpp \
 	src/gcode.cpp \
 	src/gatsp.cpp \
 	hole.cpp \
-	src/part.cpp
+	src/part.cpp \
+	src/leads.cpp
 
 LIBS	= ../libs/libdxflib.a
 INCLUDEPATH	= src/dxflib
@@ -64,5 +65,8 @@ HEADERS	= src/test_creationclass.h \
 	src/gcode.h \
 	src/gatsp.h \
 	hole.h \
-	src/part.h
+	src/part.h \
+	src/leads.h
 FORMS	= src/settingsdialog.ui
+QT	= core gui opengl
+DESTDIR	= build

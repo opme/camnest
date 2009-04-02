@@ -181,6 +181,6 @@ public:
 	 QPointF ArrowWing1(double line_angle,QPointF end_point);
 	 QPointF ArrowWing2(double line_angle,QPointF end_point);
 	 void drawArc(QPointFWithParent point,QPainterPath &pathToModify);
-	 void createLeads(QPainterPath loopPath,int loopPos);
+	 
   
   #endif 

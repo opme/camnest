@@ -3,47 +3,52 @@
  #include "qpointfwithparent.h"
  #include "gcode.h"
  #include "gatsp.h"
-
+ #include "leads.h"
  //#include "part.h"
  //#define RAND_MAX 255
  #define ARROW_LENGHT 10
-
+#include <QGLWidget>
  /// FIXME: In step loop there 's a reptition of loops in part tspOp.dxf
  
-	DL_Dxf* dxf;
-	Test_CreationClass* creationClass;
-	/// represent the QGraphicsViews containing the scenes
-	Sheet *scene;
-	Sheet *previewScene;	
+	 QPen myPen;
+	 QBrush myBrush;
+ 
+	 DL_Dxf* dxf;
+	 Test_CreationClass* creationClass;
+	 /// represent the QGraphicsViews containing the scenes
+	 Sheet *scene;
+	 Sheet *previewScene;	
 	
-	QGraphicsPixmapItem *toolPix;
-	QPointFWithParent endPoint;
-	QGraphicsLineItem toolLine;
-
-	Part *piece;
-  
-  
-  ///Holds the nulber of inserted parts in the drawing
-	int insertedParts=0;
-	///Holds the nulber of current present parts in the drawing
-	int nbrParts=0;
+	 QGraphicsPixmapItem *toolPix;
+	 QPointFWithParent endPoint;
+	 QGraphicsLineItem toolLine;
+	 
+	 /// As the lead-points are independant from the part we create them on them own
+	 Part *piece;
+	 Lead *leadEllipse;
+	  Lead *leadTouch;
+	 ///Holds the nulber of inserted parts in the drawing
+	 int insertedParts=0;
+	 ///Holds the nulber of current present parts in the drawing
+	 int nbrParts=0;
 	
  
-	/// weitherthere areseneted itmes or not
-	int selection_empty=1;
-	/// numberof selecteditems
-	int selected_nbr=0;
-	
+	 /// weitherthere areseneted itmes or not
+	 int selection_empty=1;
+	 /// numberof selecteditems
+	 int selected_nbr=0;
+	 
+	 bool PlasmaMode=true;
 
-	///the parts appended to the sheetMetal
-	QList<Part *> parts;
+	 ///the parts appended to the sheetMetal
+	 QList<Part *> parts;
 	
-	///havn't to be pointer reference as they entities are deleted after being read
+	 ///havn't to be pointer reference as they entities are deleted after being read
 	
-	int currentLoop=0;
+	 int currentLoop=0;
     
-	/// mAybe useful for TSP between PArts
-	QPFWPList endPointslist;	
+	 /// mAybe useful for TSP between PArts
+	 QPFWPList endPointslist;	
 	
 
 	
@@ -226,9 +231,50 @@ SettingsDialog::SettingsDialog(QWidget *parent)   : QWidget(parent)
 
 		 previewScene->clear();
 		 piece=new Part(creationClass->partPath,creationClass->partPath.boundingRect(),creationClass->pointsPathList,creationClass->partPathsList,creationClass->pointsCircleList,creationClass->circlePathsList);//, previewScene-> views().at(0));
-		 ///connect(piece,SIGNAL(progressionStep( int )),this,SLOT(progressionDone(int)));
+		 ///connect((QObject*)piece,SIGNAL(progressionStep()),this,SLOT(progressionDone()));
+		 
+		 
+		  //for (int i=0;i<=piece->leadsRect.size();i++) {
+			 //leadsRect
+			 /// find a way to track tehem new pos using data
+			 ///qgraphicsitem_cast<QGraphicsItem *>
+			 //qDebug()<<piece->leadsRect.at(i)<<"adding lead point";
+			 ///previewScene->addItem(&(QGraphicsEllipseItem(piece->leadsRect.at(i))));
+			 /// before we have to append them somewhere to avoid losing their track
+			// QGraphicsItem *test;
+			 //QPointFWithParent
+			 // QRectF laserRect(leadPoint.x()-leadRadius,leadPoint.y()-leadRadius,2*leadRadius,2*leadRadius);
+			 // test=(previewScene->addEllipse(piece->leadsRect,myPen,myBrush));//setFlag(QGraphicsItem::ItemIsMovable);//setParentItem(piece
+			 // test->setFlag(QGraphicsItem::ItemIsMovable);
+			 // test->setFlag(QGraphicsItem::ItemIsSelectable);
+			  //test->setParentItem(piece);
+			 //}
+		 //qDebug()<<piece->childItems();
+		 qDebug() << previewScene->items().size();
 		 previewScene->addItem(piece);
-		 qDebug() << "Showing part preview";
+		 qDebug() << previewScene->items().size();
+		  //QPointFWithParent leadPoint;
+		 ///add the GUI reporesentation of leads 
+		/// Edge *edge;
+		 for (int i=0;i<piece->leadsPoints.size();i++) {
+			 // qDebug()<<leadPoint;
+			 ///leadEllipse= new Lead(piece->leadsPoints.at(i),piece);
+			 /// NO§Te: as at return a const we can't use it!!!
+			  leadEllipse= new Lead(&piece->leadsPoints[i],piece);
+			  leadTouch= new Lead(piece->leadsPoints[i].leadTouch,piece);
+			 //edge= new Edge(leadEllipse);
+			 ///leadEllipse= new Lead (piece);
+			 //leadEllipse->setPos(piece->leadsPoints.at(i));
+			 previewScene->addItem(leadEllipse);
+			 previewScene->addItem(leadTouch);
+			 
+			 previewScene->addItem(new Edge(leadEllipse, leadTouch));
+			 //previewScene->addItem(edge);
+			 }
+			  ///leadCircle->setParentItem(this);
+		 
+		 
+		 
 		 previewScene-> zoomFit();
 		 ///insertedParts=previewScene->items().size();//// FIXMEne marche plus lorsqu'on add le ttolPix
 		 
@@ -253,14 +299,26 @@ SettingsDialog::SettingsDialog(QWidget *parent)   : QWidget(parent)
 	 
 	 qDebug()<<"Writing the Gcode of "<<parts.size()<<"parts";
 	 for (int j=0; j<parts.size();j++){	
-		 qDebug()<<"Writing the Gcode of part"<< j<<"containing"<<parts.at(j)->gCodePointsTrans.size()<<"loops";
+		 qDebug()<<"Part endPoints"<<parts.at(j)->endPointslist;
+		 qDebug()<<"Part leads"<<parts.at(j)->leadsPoints;
+		  
+		 ///qDebug()<<"Writing the Gcode of part"<< j+1<<"containing"<<parts.at(j)->gCodeEntitiesTrans.size()<<"loops";
 		  partGCode.comment("Starting a new part");
-		 for (int i=0; i < parts.at(j)->gCodePointsTrans.size();i++){
+		 qDebug()<<"the part "<< parts.at(j)->gCodeEntitiesTrans;
+		  ///TODO: Create an overloded method partGCode.write(Part part);
+		 for (int i=0; i < parts.at(j)->gCodeEntitiesTrans.size();i++){
+			 
 			 partGCode.comment("Adding a Loop");
-			 partGCode.comment("Turnin off torch");
+			 ///partGCode.comment("Turnin off torch");
+			 ////partGCode.comment("Going to Z home");
+			 ///First we go to the lead-in Point
+			 partGCode.comment("Going to lead-in point");
 			 partGCode.comment("Going to Z home");
+			 if (PlasmaMode){
+		  	 partGCode.rapidMove (parts.at(j)->leadsPoints.at(i).x(),parts.at(j)->leadsPoints.at(i).y());
+			 }
 			 ///Importnat:FIXME For open path not to be generated 2 times  we have to skip items of the same Parent Loop
-		  	 partGCode.writeClosedLoop( parts.at(j)->gCodePointsTrans.at(i));
+			 partGCode.writeClosedLoop( parts.at(j)->gCodeEntitiesTrans.at(i));
 		}	 
 	 }	
 	 partGCode.writeEnd();
@@ -470,11 +528,11 @@ void Sheet::zoomFit(){
      dock->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
      addDockWidget(Qt::LeftDockWidgetArea, dock);
 
-	 previewSheet->setMinimumSize(250,250);
+	 previewSheet->setMinimumSize(200,200);
 	 previewSheet->resize(300,300);
-	 previewSheet->setMaximumSize(400,300);
-	 previewSheet->setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
-	 previewSheet->setDragMode(QGraphicsView::RubberBandDrag);
+	 previewSheet->setMaximumSize(1000,1000);
+	
+	
 	 
 
 	 model->setSorting(QDir::Type);
@@ -524,7 +582,11 @@ void Sheet::zoomFit(){
      settings.beginGroup("MainWindow");
      settings.setValue("size", size());
      settings.setValue("pos", pos());
-	 settings.setValue("dir", model->filePath(tree->currentIndex()));
+	 
+	 //qDebug()<<QDir::absoluteFilePath(model->filePath(tree->currentIndex()));
+	 QString filesDir=model->filePath(tree->currentIndex());
+	 filesDir.chop(filesDir.size()-(filesDir.lastIndexOf(QDir::separator())));
+	 settings.setValue("dir", filesDir);
      settings.endGroup();
  }
 
@@ -534,6 +596,33 @@ void Sheet::zoomFit(){
      resize(settings.value("size", QSize(400, 400)).toSize());
      move(settings.value("pos", QPoint(200, 200)).toPoint());
      settings.endGroup();
+	 
+	 if(settings.value("Colors/openGl", false).toBool()){
+	  previewSheet->setViewport( new QGLWidget() );
+	  }
+	  
+	 switch (settings.value("Colors/openGl", 1).toInt()){
+		 case 1 :
+		 previewSheet->setRenderHints(QPainter::Antialiasing );
+		 break;
+		 case 2 : 
+		 previewSheet->setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
+		 break;
+		 case 3 : 
+		 previewSheet->setRenderHints(QPainter::HighQualityAntialiasing | QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
+		 case 4 : 
+		 previewSheet->setRenderHints(QPainter::HighQualityAntialiasing | QPainter::TextAntialiasing| QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
+		 break;
+		 default:
+		 previewSheet->setRenderHints(QPainter::Antialiasing );
+		}
+	 
+	 
+	  contourPen = QPen (Qt::red);
+	  contourBrush = QBrush(Qt::cyan, Qt::SolidPattern);
+	  myPen =QPen (settings.value("Colors/brush").value<QColor>());
+	  myBrush=QBrush (settings.value("Colors/pen").value<QColor>());
+	 
 	 }
 	
 
@@ -544,13 +633,13 @@ void Sheet::zoomFit(){
 	 
 	 
  void MainWindow::closeEvent(QCloseEvent *event){
-     if (maybeSave()) {
+     ///if (maybeSave()) {
          writeSettings();
          event->accept();
-		} 
-	 else {
-         event->ignore();
-		}
+		///} 
+	 ///else {
+        /// event->ignore();
+		///}
 	}
 	 
 	 
@@ -644,9 +733,17 @@ void Sheet::zoomFit(){
 	 createToolBars();
 	 ///there is no toColor(), toImage(), or toPixmap() functions in QVariant.
 	 
+	 QRect previewRect(-400, -400, 800, 800); 
+	 QRect sceneRect(-2000, -2000, 3600, 3600); 
+     scene=new  Sheet ();
+	 scene->setSceneRect(sceneRect);
 	 
-	 contourPen = QPen (Qt::red);
-	 contourBrush = QBrush(Qt::cyan, Qt::SolidPattern);
+	 previewScene=new  Sheet ();	  
+	 previewScene->setSceneRect(previewRect);
+	
+	 previewSheet = new QGraphicsView(previewScene);
+	 sheet = new QGraphicsView(scene);
+	 
 	 readSettings();
 	 
 
@@ -654,13 +751,8 @@ void Sheet::zoomFit(){
 	 qDebug()<< "Interface ready";
      /// create the view  in the mainWindow
 	 /// resize to the sheet value
-	 QRect previewRect(-400, -400, 800, 800); 
-	 QRect sceneRect(-2000, -2000, 3600, 3600); 
-     scene=new  Sheet ();
-	 scene->setSceneRect(sceneRect);
-	 previewScene=new  Sheet ();	  
-	 previewScene->setSceneRect(previewRect);
-	  
+	
+	
 	 connect(previewScene,SIGNAL(progressionDone(const int )),this,SLOT(progressionDone(int)));
 	 
 	 //connect(piece,SIGNAL(descStep()),this,SLOT(descStep()));
@@ -675,7 +767,8 @@ void Sheet::zoomFit(){
 	 ///QHBoxLayout *layout = new QHBoxLayout;  
 	  ///QGraphicsView *previewSheet = new QGraphicsView(testScene);
 	  
-	 previewSheet = new QGraphicsView(previewScene);
+	 
+	 
 	 loadingBar=new QProgressBar();
 	 horSplitter = new QSplitter(this);
 	 model = new QDirModel;
@@ -686,7 +779,9 @@ void Sheet::zoomFit(){
 	 createDockWindows();
 	 
 	 
-	 sheet = new QGraphicsView(scene);	 
+		
+	  /// ADD OPTION USE OPENGL
+	 //sheet->setViewport( new QGLWidget());
 	 setCentralWidget(sheet);
 	 //QSplitter *verSplitter = new QSplitter(this);
 	 //verSplitter->setGeometry(20, 60, 1000,600);
@@ -718,7 +813,7 @@ void Sheet::zoomFit(){
      /*
    the seetMetal declarations
   */
-   Sheet::Sheet (QWidget *parent):QGraphicsScene () {
+   Sheet::Sheet (QWidget *parent):QGraphicsScene (parent) {
 	 toolPen = QPen  (Qt::blue,1, Qt::DotLine);
 	}
 	
@@ -755,62 +850,16 @@ void Sheet::zoomFit(){
  
 	  QSize SheetMetal::sizeHint() 
 	  {
-     //return QSize(300, 300);
+     return QSize(300, 300);
      }
 	 
 	 QSize SheetMetal::minimumSizeHint() 
  {
-     //return QSize(200, 150);
+     return QSize(200, 150);
  }
  
  
  
-	///todo : make changes to loop or not ? QPainterPath &myLoopPath
-	void createLeads(QPainterPath myLoopPath,int loopPos){
-	 
-	 /**This is how my 7alazounesk algorithm works:
-		 we take a random point from a loop.
-		 We postulate that every point can give a lead in/out point
-		 We take an offset at a given angle. If the point isn't in (the loop.contains return false)
-		 then we add val to angle when we return to 0 angle , we add an increment DELTA to the radius
-		 we do this unil we find a point insdie the shape.
-		 TODO : nnce  a point inside a shpae is foucnd Have to check that the linebetwseen the point & the lead
-		 in/out pij t dosn't intersect with the outline!!!!!
-	 
-	 **/
-	 //QPainterPath boundingRect; 
-	 //boundingRect.addRect(myLoopPath.boundingRect());
-	 /// have to take a point from the loop ( we choose it's start point but can any point...²
-	 QPointF leadPoint=endPointslist.at(loopPos);
-	 QPointF startPoint=endPointslist.at(loopPos);
-	 /// begin the search
-	 ///Min Radius is to be user Defined
-	 double angle=0,incrementRad=0.3, incrementAng=3,radius=2;
-	 int iter=0;
-	 leadPoint.setX(leadPoint.x()+radius*cos(angle));
-	 leadPoint.setY(leadPoint.y()+radius*sin(angle));
-	 while (myLoopPath.contains(leadPoint) && iter<10000){
-			angle+=incrementAng;
-		if (angle>360) {radius+=incrementRad;angle=0;}
-		leadPoint.setX(leadPoint.x()+radius*cos(angle));
-		leadPoint.setY(leadPoint.y()+radius*sin(angle));
-		
-		//qDebug()<<angle<<iter;
-		iter++;
-		}		
-		qDebug()<<"Possible lead point at"<<leadPoint<<"with radius"<<radius<<"and anfgle"<<angle<<"after"<<iter;
-		scene->addLine(QLineF(leadPoint,startPoint));
-		//(scene->addPixmap(QPixmap("/home/invite/Desktop/bazar/PFE/camnest/hole.png"))->setPos(leadPoint));
-	 /// Now check for intersects()
-	 /**bool QPainterPath::contains ( const QPointF & point ) const
-Returns true if the given point is inside the path, otherwise returns false.**/	
-	}
-	
-	
-		 /** the lead-in distance is a constant, it's the angle that varies to avoid intersection with other
-	 shapes */
-
-	
 	void drawArc(QPointFWithParent point,QPainterPath &pathToModify) {
 	 
 	 pathToModify.arcTo(QRectF(point.centerX-point.parentRadius,point.centerY-point.parentRadius,2*point.parentRadius,2*point.parentRadius),-( point.angle1),-fabs( point.angle1- point.angle2));	 

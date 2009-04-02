@@ -1,7 +1,15 @@
 
 #ifndef TEST_CREATIONCLASS_H
 #define TEST_CREATIONCLASS_H
+#include <float.h>
+   /* Number of decimal digits of precision in a double */
 
+
+#undef DBL_DIG
+#define DBL_DIG 9
+
+
+///#define DBL_DIG 10
 #include "dl_creationadapter.h"
 #include <QtGui>
 #include "qpointfwithparent.h"
@@ -65,7 +73,9 @@ public:
 	 /// indicates weither ot not it's the first encountred polyline 
 	 bool polylineFirst;
 	 QPainterPath polylineCurrent;
-	
+	 
+	 double getPoint(double pos,double teta1,double radius,bool cos);
+	double roundMe(double val);
 };
 
 #endif
