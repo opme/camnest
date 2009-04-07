@@ -1,0 +1,246 @@
+
+krazy2 Analysis
+
+Checkers Run = 36
+Files Processed = 36
+Total Issues = 138 ...as of April 07 2009 02:49:10 CET
+
+==>For File Type c++<==
+1. Check for TRUE and FALSE macros [captruefalse]... Ok!
+
+2. Check for methods that return 'const' refs in public classes [constref]... Ok!
+
+3. Check for an acceptable copyright [copyright]... 19 issues found
+        ./sheet.h: missing tags: copyright  (1)                    
+        ./test_creationclass.cpp: missing tags: email address(line 9)  (1)
+        ./dxflib/dl_entities.h: missing tags: email address(line 4)  (1)  
+        ./dxflib/dl_dxf.cpp: missing tags: email address(line 4)  (1)     
+        ./dxflib/dl_attributes.h: missing tags: email address(line 4)  (1)
+        ./dxflib/dl_extrusion.h: missing tags: email address(line 4)  (1) 
+        ./dxflib/dl_dxf.h: missing tags: email address(line 4)  (1)       
+        ./dxflib/dl_creationinterface.h: missing tags: email address(line 4)  (1)
+        ./dxflib/dl_exception.h: missing tags: email address(line 4) email address(line 5)  (2)
+        ./dxflib/dl_codes.h: missing tags: email address(line 4) email address(line 5)  (2)    
+        ./dxflib/dl_writer_ascii.h: missing tags: email address(line 4) email address(line 5)  (2)
+        ./dxflib/dl_creationadapter.h: missing tags: email address(line 4)  (1)                   
+        ./dxflib/dl_writer_ascii.cpp: missing tags: email address(line 4) email address(line 5)  (2)
+        ./dxflib/dl_writer.h: missing tags: email address(line 4) email address(line 5)  (2)        
+        All source files must contain a copyright header which identifies                           
+        the copyright holder(s) together with a e-mail address that can be                          
+        used to reach the copyright holder.  One copyright holder per line,                         
+        with real email addresses please. For details regarding KDE's                               
+        licensing policy please visit                                                               
+        <http://techbase.kde.org/Policies/Licensing_Policy>.  A typical                             
+        copyright looks like: "Copyright 2002,2005-2006 Joe Hacker                                  
+        <joe.hacker@kde.org>"                                                                       
+
+4. Check for cpp macros and usage [cpp]... 3 issues found
+        ./dxflib/dl_dxf.h: O/S or Compiler specific macro line#42[_WIN32] (1)
+        ./dxflib/dl_codes.h: O/S or Compiler specific macro line#43[_WIN32],48[_WIN32] (2)
+        C++ source files and non-installed headers should NOT use cpp                     
+        conditionals that check for a certain O/S or compiler; instead use                
+        CMake HAVE_foo macros. We want to check for features discovered                   
+        during CMake time rather than for a specific O/S.                                 
+
+5. Check single-char QString operations for efficiency [doublequote_chars]... 2 issues found
+        ./gcode.cpp: line#201,205 (2)                                                       
+        Adding single characters to a QString is faster if the characters                   
+        are QChars and not QStrings.  For example: QString path = oldpath +                 
+        "/" + base is better written as QString path = oldpath + '/' +                      
+        base. Same holds for arguments to QString::startsWith(),                            
+        QString::endsWith(), QString::remove(), QString::section(), and                     
+        QString::split(). Use QString::remove() instead of                                  
+        QString::replace(foo,"")                                                            
+
+6. Check for unwanted doxygen tags in major versions [doxytags]... Ok!
+
+7. Check public classes with private members or d-pointer issues [dpointer]... Ok!
+
+8. Check for QString compares to "" [emptystrcompare]... Ok!
+
+9. Check that file ends with a newline [endswithnewline]... 8 issues found
+        ./window.h: line# 84 (1)                                          
+        ./window.cpp: line# 212 (1)                                       
+        ./main.cpp: line# 23 (1)                                          
+        ./leads.cpp: line# 75 (1)                                         
+        ./parts.h: line# 14 (1)                                           
+        ./renderpath.cpp: line# 108 (1)                                   
+        ./renderpath.h: line# 73 (1)                                      
+        ./sheet.cpp: line# 971 (1)                                        
+        Files that do not end with a newline character can cause problems.
+        Please add a newline character to the end of the file.            
+
+10. Check for C++ ctors that should be declared 'explicit' [explicit]... 5 issues found
+        ./sheet.h: line#33,91 (2)                                                      
+        ./renderpath.h: line#49 (1)                                                    
+        ./qpointfwithparent.h: line#43 (1)                                             
+        ./dxflib/dl_writer_ascii.h: line#52 (1)                                        
+        Make all C++ class constructors that can be used with only one                 
+        required argument 'explicit' to minimize wrong use of the class. Do            
+        this to avoid mistaken implicit constructor ambiguities. Copy                  
+        constructors should not be explicit.                                           
+
+11. Check for foreach loop issues [foreach]... 1 issue found
+        ./window.cpp: line#183 (1)                          
+        When not using POD types (int, double, pointer, ...) you should use
+        const & for your foreach variables. There are two reasons for this:
+        1) Prevents you from the mistake of writing foreach loops that     
+        modify the list, that is 'foreach(Foo f, list) f.a = f.b = f.c =   
+        0;' compiles but does not modify the contents of list 2) Saves a   
+        copy constructor call for each of the list elements                
+
+12. Check validity of i18n calls [i18ncheckarg]... Ok!
+
+13. Check for invalid icon names [iconnames]... Ok!
+
+14. Check for proper include directives [includes]... 15 issues found
+        ./part.cpp: include own header first line#2                  
+        ./sheet.h: do not include QtModules line#3(QtGui)            
+        ./window.cpp: do not include QtModules line#38(QtGui)        
+        ./window.cpp: include own header first line#42               
+        ./main.cpp: do not include QtModules line#1(QtGui)           
+        ./chromosome_interface.h: using leading or trailing underscores on include guard in header
+        ./renderpath.cpp: do not include QtModules line#38(QtGui)                                 
+        ./renderpath.cpp: include own header first line#40                                        
+        ./leads.h: do not include QtModules line#5(QtGui)                                         
+        ./test_creationclass.h: do not include QtModules line#14(QtGui)                           
+        ./gatsp.h: do not include QtModules line#3(QtGui)                                         
+        ./part.h: do not include QtModules line#5(QtGui)                                          
+        ./qpointfwithparent.h: do not include QtModules line#3(QtGui)                             
+        ./dxflib/dl_codes.h: missing or improper include guard in header                          
+        ./dxflib/dl_writer_ascii.cpp: include own header first line#34                            
+        Use <..> to include installed headers; <QtModule/QClass> to include                       
+        Qt headers from installed headers; cpp file should include their                          
+        own headers first (but below config.h); other rules apply, see                            
+        <http://techbase.kde.org/Policies/Library_Code_Policy#Getting_.23in                       
+        cludes_right>. Use include guards in headers with appropriatedly                          
+        encoded macro names.                                                                      
+
+15. Check for inline methods in public classes [inline]... Ok!
+
+16. Check for an acceptable license [license]... 29 issues found
+        ./part.cpp: missing license                             
+        ./sheet.h: missing license                              
+        ./main.cpp: missing license                             
+        ./qpointfwithparent.cpp: missing license                
+        ./chromosome_interface.h: missing license               
+        ./test_creationclass.cpp: LGPL (wrong address)          
+        ./leads.cpp: missing license                            
+        ./parts.h: missing license                              
+        ./leads.h: missing license                              
+        ./gcode.cpp: missing license                            
+        ./gcode.h: missing license                              
+        ./gatsp.cpp: missing license                            
+        ./test_creationclass.h: missing license                 
+        ./gatsp.h: missing license                              
+        ./part.h: missing license                               
+        ./qpointfwithparent.h: missing license                  
+        ./sheet.cpp: missing license                            
+        ./dxflib/dl_entities.h: GPL v3+ or v2-only is not compatible with Qt or KDE licensing
+        ./dxflib/dl_dxf.cpp: GPL v3+ or v2-only is not compatible with Qt or KDE licensing   
+        ./dxflib/dl_attributes.h: GPL v3+ or v2-only is not compatible with Qt or KDE licensing
+        ./dxflib/dl_extrusion.h: GPL v3+ or v2-only is not compatible with Qt or KDE licensing 
+        ./dxflib/dl_dxf.h: GPL v3+ or v2-only is not compatible with Qt or KDE licensing       
+        ./dxflib/dl_creationinterface.h: GPL v3+ or v2-only is not compatible with Qt or KDE licensing
+        ./dxflib/dl_exception.h: GPL v3+ or v2-only is not compatible with Qt or KDE licensing        
+        ./dxflib/dl_codes.h: GPL v3+ or v2-only is not compatible with Qt or KDE licensing            
+        ./dxflib/dl_writer_ascii.h: GPL v3+ or v2-only is not compatible with Qt or KDE licensing     
+        ./dxflib/dl_creationadapter.h: GPL v3+ or v2-only is not compatible with Qt or KDE licensing  
+        ./dxflib/dl_writer_ascii.cpp: GPL v3+ or v2-only is not compatible with Qt or KDE licensing   
+        ./dxflib/dl_writer.h: GPL v3+ or v2-only is not compatible with Qt or KDE licensing           
+        Each source file must contain a license or a reference to a license                           
+        which states under which terms the software may be used, modified                             
+        and redistributed.  For details regarding KDE's licensing policy                              
+        please visit <http://techbase.kde.org/Policies/Licensing_Policy>.                             
+
+17. Check for assignments to QString::null [nullstrassign]... Ok!
+
+18. Check for compares to QString::null or QString() [nullstrcompare]... Ok!
+
+19. Check for inappropriate pass-by-value function args [passbyvalue]... Ok!
+
+20. Check for postfix usage of ++ and -- [postfixop]... 4 issues found
+        ./gatsp.cpp: line#741,753,756 (3)                             
+        ./dxflib/dl_dxf.cpp: line#941 (1)                             
+        You should use ++ and -- as prefix whenever possible as these are
+        more efficient than postfix operators. Prefix increments first and
+        then uses the variable, postfix uses the actual; the variable is  
+        incremented as well. Because of this, the prefix operators are    
+        inherently more efficient. *WARNING* Make sure that you don't     
+        introduce off-by-one errors when changing i++ to ++i.             
+
+21. Check for dangerous or inefficient QByteArray usage [qbytearray]... Ok!
+
+22. Check for Qt classes that should not be used [qclasses]... 17 issues found
+        ./window.h: QComboBox[KComboBox],QComboBox[KComboBox],QComboBox[KComboBox],QComboBox[KComboBox],QComboBox[KComboBox],QComboBox[KComboBox] (6)                                                         
+        ./part.cpp: QInputDialog[KInputDialog] (1)                                                     
+        ./window.cpp: QComboBox[KComboBox],QComboBox[KComboBox],QFileDialog[KFileDialog] (3)           
+        ./sheet.cpp: QColorDialog[KColorDialog],QColorDialog[KColorDialog],QFileDialog[KFileDialog],QFileDialog[KFileDialog],QMessageBox[KMessageBox],QMessageBox[KMessageBox],QMessageBox[KMessageBox] (7)   
+        Don't use Qt 4 classes that are deprecated. Additionally make sure                             
+        to use the KDE version of some Qt GUI elements to provide a                                    
+        consistent look and feel for the KDE desktop. The KDE classes are                              
+        not just adding functionalities to the Qt base class and are mostly                            
+        not even based on the Qt class.                                                                
+        <http://techbase.kde.org/Policies/API_to_Avoid> *Please* *refer*                               
+        *to* *the* *API* *documentation* *for* *details* *before* *porting*                            
+        *to* *the* *K* *classes*.                                                                      
+
+23. Check for invalid SIGNALs and SLOTs passed to connect() [qconnect]... Ok!
+
+24. Check for Qt methods that should be avoided [qmethods]... Ok!
+
+25. Check for QMIN and QMAX macros [qminmax]... Ok!
+
+26. Check for classes that should use the 'Q_OBJECT' macro [qobject]... Ok!
+
+27. Check for signals: and slots: [sigsandslots]... Ok!
+
+28. Check for spelling errors [spelling]... 28 issues found
+        ./part.cpp: line#22[lenght],125[continous],235[swaped],368[sucess],411[sucess],418[havn't],419[sucess],478[havn't],528[buton],613[parametres],684[achived],733[occurence],734[occurence],735[occurence],809[havn't],931[buton] (16)                                                                          
+        ./test_creationclass.cpp: line#60[begining] (1)                                                
+        ./leads.cpp: line#4[exapmle] (1)                                                               
+        ./gcode.cpp: line#92[onthe] (1)                                                                
+        ./gatsp.cpp: line#10[nedd],284[wich],371[lenght],397[droped],581[wich] (5)                     
+        ./sheet.cpp: line#28[independant],45[havn't],405[mutiple] (3)                                  
+        ./dxflib/dl_writer_ascii.cpp: line#143[occurence] (1)                                          
+        Spelling errors in comments and strings should be fixed as they may                            
+        show up later in API documentation, handbooks, etc.  Misspelled                                
+        strings make the translator's job harder. Please use US English.                               
+
+29. Check for strings used improperly or should be i18n. [strings]... Ok!
+
+30. Check for system calls to replace by KDE or Qt equivalents [syscalls]... Ok!
+
+31. Check for typedefs that should be replaced by Qt typedefs [typedefs]... Ok!
+
+==>For File Type designer<==
+1. Check that file ends with a newline [endswithnewline]... Ok!
+
+2. Check for files that need to be fixed by 'fixuifiles' [fixuifiles]... Ok!
+
+3. Check validity of i18n calls [i18ncheckarg]... 3 issues found
+        ./settingsdialog.ui: reported ambiguous message by translators; use context call to explain what it refers to line#211                                                                                
+        ./settingsdialog.ui: single adjective as message, probably ambiguous; use context call to explain what it refers to line#1045,1065                                                                    
+        Make the translators' job easier and detect problems in the usage                              
+        of the i18n() calls. When the fix is not clear, check the Techbase                             
+        article at                                                                                     
+        <http://techbase.kde.org/Development/Tutorials/Localization/i18n_Kr
+        azy> for more information.
+
+4. Check for Qt classes that should not be used [qclasses]... 3 issues found
+        ./config.ui: QDialog[KDialog] (1)
+        ./settingsdialog.ui: QTextEdit[KTextEdit],QTextEdit[KTextEdit] (2)
+        Don't use Qt 4 classes that are deprecated. Additionally make sure
+        to use the KDE version of some Qt GUI elements to provide a
+        consistent look and feel for the KDE desktop. The KDE classes are
+        not just adding functionalities to the Qt base class and are mostly
+        not even based on the Qt class.
+        <http://techbase.kde.org/Policies/API_to_Avoid> *Please* *refer*
+        *to* *the* *API* *documentation* *for* *details* *before* *porting*
+        *to* *the* *K* *classes*.
+
+5. Check for spelling errors [spelling]... 1 issue found
+        ./settingsdialog.ui: line#1172[quiting] (1)
+        Spelling errors in comments and strings should be fixed as they may
+        show up later in API documentation, handbooks, etc.  Misspelled
+        strings make the translator's job harder. Please use US English.
