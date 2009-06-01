@@ -203,7 +203,7 @@
        </size>
       </property>
       <property name="currentIndex">
-       <number>2</number>
+       <number>1</number>
       </property>
       <widget class="QWidget" name="page">
        <widget class="QWidget" name="horizontalLayoutWidget_3">
@@ -315,7 +315,7 @@
          </item>
         </layout>
        </widget>
-       <widget class="QCheckBox" name="checkBox">
+       <widget class="QCheckBox" name="plasmaCB">
         <property name="geometry">
          <rect>
           <x>10</x>
@@ -547,7 +547,7 @@
               <string>Lead Radius:</string>
              </property>
              <property name="buddy">
-              <cstring>leadRadiusSB</cstring>
+              <cstring>leadRadiusMotionSB</cstring>
              </property>
             </widget>
            </item>
@@ -565,7 +565,11 @@
             </spacer>
            </item>
            <item>
-            <widget class="QDoubleSpinBox" name="leadRadiusSB"/>
+            <widget class="QDoubleSpinBox" name="leadRadiusSB">
+             <property name="toolTip">
+              <string>Will represent the Arrow stroke width</string>
+             </property>
+            </widget>
            </item>
           </layout>
          </item>
@@ -601,6 +605,43 @@
             <widget class="QSpinBox" name="leadAngleSB">
              <property name="maximum">
               <number>360</number>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout_25">
+           <item>
+            <widget class="QLabel" name="label_24">
+             <property name="whatsThis">
+              <string>Angle at which circles leads should be drawn (and cut).</string>
+             </property>
+             <property name="text">
+              <string>Laser/plasma radius in motion :</string>
+             </property>
+             <property name="buddy">
+              <cstring>leadAngleSB</cstring>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <spacer name="horizontalSpacer_16">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>40</width>
+               <height>20</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+           <item>
+            <widget class="QDoubleSpinBox" name="leadRadiusMotionSB">
+             <property name="toolTip">
+              <string>Will represent the Arrow stroke width</string>
              </property>
             </widget>
            </item>
@@ -1359,6 +1400,13 @@
            </property>
           </widget>
          </item>
+         <item>
+          <widget class="QCheckBox" name="optPathCB">
+           <property name="text">
+            <string>Automatically optimize path </string>
+           </property>
+          </widget>
+         </item>
         </layout>
        </widget>
       </widget>
@@ -1450,7 +1498,7 @@
   <tabstop>spinBox_2</tabstop>
   <tabstop>spinBox_3</tabstop>
   <tabstop>tolGCodeSB</tabstop>
-  <tabstop>checkBox</tabstop>
+  <tabstop>plasmaCB</tabstop>
   <tabstop>toolButton</tabstop>
   <tabstop>textEdit</tabstop>
   <tabstop>textEdit_2</tabstop>
@@ -1461,7 +1509,6 @@
   <tabstop>setTextPB</tabstop>
   <tabstop>leadDistSB</tabstop>
   <tabstop>minLeadDistSB</tabstop>
-  <tabstop>leadRadiusSB</tabstop>
   <tabstop>leadAngleSB</tabstop>
   <tabstop>drawArrowCB</tabstop>
   <tabstop>penPB</tabstop>

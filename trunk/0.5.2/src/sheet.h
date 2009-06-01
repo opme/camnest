@@ -15,12 +15,13 @@
 
  
 
- ///@fixme resolve file include issue
+ /// @bug resolve file include issue
  class PartsListModel;
  
  
  
  ///@todo: move  to an independant headre file
+ /// the main window GUI class
  class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -40,8 +41,7 @@ public:
 	 Sheet *scene;
 	 /// GraphicScene showing the previewed items
 	 Sheet *previewScene;	
-	 
-	 
+
 	 
 	
 	 //***********************Docks************* 
@@ -193,13 +193,13 @@ public:
 	 unsigned int insertedParts;
 	 ///Holds the nulber of current present parts in the drawing
 	 unsigned int nbrParts;
-	
-	 
+        /// Affect animation and G-code saving options
+         bool plasmaMode;
 	 
 	 /// @note have to stay public 
 	 public slots:
 	 void openFile();
-	 ///return the starting point of loop i of the previewn part and update the progress bar (for animation) 
+         /// returns the starting point of loop i of the previewn part and update the progress bar (for animation)
 	 void nextPoint(int currentLoop);
 
 
@@ -228,7 +228,7 @@ public:
 	 void deleteItems();
 	 void insert();
 	 bool confirmAction();
-         void updateSettings();
+         void updateRectDims();
 	 protected:
 	 virtual void closeEvent(QCloseEvent *event);
   };

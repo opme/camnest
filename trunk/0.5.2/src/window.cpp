@@ -17,6 +17,8 @@
 	 int currentLoop=0;
 	 QGraphicsPixmapItem *toolPix;
 	 QGraphicsLineItem toolLine;
+          /// margin used to properly show piece in preview sheet @todo Add in option dialog
+         const int rectMarg=20;
 	
 	
 	
@@ -26,7 +28,6 @@
 	 ///draw the sheet rectangle if we're not previewing the part
 	 if (!preview) {
          ///start with a default sheet rect dimension
-             sheetRect=new QGraphicsRectItem();
              setSheetRect();
 	 }
 	 toolPen = QPen  (Qt::blue,1, Qt::DotLine);
@@ -34,6 +35,7 @@
 	
       
       void Sheet::setSheetRect(QRect rect){
+          // we ensure that the rect exist (may happen after clearinig the scene)
 
           QPen rectPen( settings.value("Colors/sheetPen").value<QColor>());
           QBrush rectBrush(Qt::NoBrush);
@@ -41,28 +43,28 @@
 		 rectBrush=QBrush(settings.value("Colors/sheetBrush").value<QColor>());
 		}
 
-         ///if a sheet rect had been already created cause there is no simple way to update it's color
-          if (sheetRect!=0)    delete sheetRect;
-
+         //if a sheet rect had been already created cause there is no simple way to update it's color
+          //if (sheetRect!=0)    delete sheetRect;
+        sheetRect=new QGraphicsRectItem();
           sheetRect=addRect(rect,rectPen,rectBrush);
       } 
 	
 
 void Sheet::zoomFit(){
-///@fixme: change to an approch not depending on the graphicxsView
+//@todo: change to an approch not depending on the graphicxsView
 	 views().at(0)->fitInView(itemsBoundingRect(),Qt::KeepAspectRatio);
  }
 	
-	///The default mouse move event on diagScene handle a one by one item move. To move mutiple items
-	/// we implment outr own one.
+        //The default mouse move event on diagScene handle a one by one item move. To move mutiple items
+        // we implment outr own one. @ note: multiple items MOVE IS DONE BY HOLDING CTRL
 	
 	
-	///@fixme have to get a bool from mouseClickEvent to avoid unessary calls to selectedItems with no selection
+        /// @todo have to get a bool from mouseClickEvent to avoid unessary calls to selectedItems with no selection
 	void Sheet::mouseMoveEvent(QGraphicsSceneMouseEvent *mouseEvent) {
 
-            ///if we're in preview sheet we do nothing on mouse move
+            //if we're in preview sheet we do nothing on mouse move
             if (preview) {
-                ///must propagate the signal (for leads  moving e.g)
+                //must propagate the signal (for leads  moving e.g)
                 mouseEvent->ignore();
 
             }
@@ -110,7 +112,7 @@ void Sheet::zoomFit(){
 
      	 views().at(0)->scale(scaleFactor, scaleFactor);
 	 views().at(0)->centerOn(mouseEvent->scenePos());
-	 ///necerrary to avoid  propagating event to child items although no mouse whell is implmenton parts for now...
+         //necerrary to avoid  propagating event to child items although no mouse whell is implmenton parts for now...
 	 mouseEvent->setAccepted(true);
 		//return;
 	 }
@@ -137,10 +139,10 @@ void Sheet::cleanUpAnim(bool end){
                 removeItem(toolPix);
                 currentLoop=0;
 
-                ///@todo use Qt rc files
+                /// @todo use Qt rc files
                 if (!end){
                  toolPix=addPixmap(QPixmap("/home/invite/Desktop/bazar/PFE/camnest/tool.png"));
-                 ///to guarantee that the tool is on top
+                 //to guarantee that the tool is on top
                  /// @note: first we find part loops at z=0 then  comes Leads and loops numbers and finally the tool pix when in animation mode
                  toolPix->setZValue(3);
                   toolPix->setPos(absoluteHome);
@@ -167,13 +169,14 @@ void Sheet::cleanUpAnim(bool end){
         }
 
    void Sheet::moveTool(QPointF endP){
-
+       //have to take into account the added margins
+       endP+=QPointF(rectMarg/2,rectMarg/2);
          qDebug()<<"Moving to point "<<endP;
-         ///Fixme there's a crash in setPos when animating clearing then reanomating
+         /// @bug there's a crash in setPos when animating clearing then reanomating
          toolLine.setLine( QLineF(homePoint,endP));
          toolLine.setPen(toolPen);
-         ///@note as tooline is already inserted Qt gives us an info message
-         ///@fixme use set pos or something like that
+         /// @note as tooline is already inserted Qt gives us an info message
+         /// @todo use set pos or something like that
          addItem(&toolLine);
          toolPix->setPos(endP);
          ///To ensure that we start at the core'ct position when going to the next part

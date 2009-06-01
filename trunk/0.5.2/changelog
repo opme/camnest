@@ -25,7 +25,17 @@ TODO sfor V 0.5:
 -change leads out position manually
 -Solve cirle issue in gcode
 -solve treansformations issues
+-set default save extension to *.ngc
 
+0.5.2:
+-Tons of bug fixes;
++Animation amelioration in plasma mode
++GA optimisation
+
+V0.6:
+-Implement nesting
+-find a way to save sheets.
+- Detect shapes intersection, sheet overflow,...
 TODO:
 Detect internal/external contours.
 Huge Memory leack are occuring=> have to conviently code destructors of crap.
@@ -53,123 +63,3 @@ at() can be faster than operator[](), because it never causes a deep copy to occ
  
  
  
- 
- 
-		void Sheet::mouseReleaseEvent(QGraphicsSceneMouseEvent *mouseEvent) {
-	 QPointF p1=mouseEvent->scenePos();QPointF p2=mouseEvent->lastScenePos();
-	 
-	 if (mouseEvent->button() == Qt::RightButton)
-	  {
-	      views().at(0)->fitInView(QRectF(p1,p2),Qt::KeepAspectRatio);
-		  views().at(0)->setDragMode(QGraphicsView::NoDrag);
-	  } 
-	  
-	  if (mouseEvent->button() == Qt::LeftButton) { 
-	     //mode=0;
-		 /// or couldbe simply retrived from scene->selectedItems()
-	     selectParts=selectedItems();
-		///selectedItems= scene->items ( QRectF(p1,p2), Qt::IntersectsItemShape  );
-		 
-	     if (!selectParts.isEmpty ()) { 	      
-			  
-			 ///  selection = new QGraphicsItemGroup();
-			 ///  selection = scene->createItemGroup(selectedItems);
-			 ///  qDebug()  << "groupcreated";
-		      selection_empty=0;
-		      /// createa groupcontaingin  theselected  items
-		      selected_nbr=selectParts.size();
-			 //if (selected_nbr==1) {
-		     /// NOTE: first returns a referencenot theobject!!!!
-			 qDebug()  << selected_nbr<< "items selected";
-		      selectedItem=selectParts.first();		 
-		     // }
-	          //QGraphicsItem *selectedItem =(selectedItems().first());
-	         Part *selectedItem= qgraphicsitem_cast<Part *> (itemAt(mouseEvent->scenePos()));
-		qDebug()<< selectedItem->pos();
-		    ///  int i=0;
-		       //////foreach(QGraphicsItem *item,selectedItems){
-      			 /// qDebug() << i << " item is of type :" << item->type()<<" and is selected= "<< item->isSelected();
-				 //selection->addToGroup(item);
-				 // if (item->isSelected()==true){				    
-				   //   item->setSelected (false);				     
-				 // }
-				 //  else {
-				  //    item->setSelected (true);				     
-				 // }
-				 /// i++;
-				 ///  if (item->type()==6) {
-				     //QGraphicsLineItem test = QGraphicsLineItem(item);
-				     //QGraphicsLineItem test;
-				     /// QGraphicsLineItem *test=qgraphicsitem_cast<QGraphicsLineItem*> ( item );
-				     //QPainterPath testPath= item->shape();
-				     /// qDebug() << test->scenePos ();
-				    ///  if (item->isSelected()){
-				          //  qDebug() << "selected";
-				         //    item->setSelected (false);
-				         /// test->setPen (QPen(Qt::black, 1));// Qt::RoundCap, Qt::RoundJoin ));
-				      ///   }
-				     /// else {
-				         //   item->setSelected (true);
-				       ///   test->setPen (QPen(Qt::red, 1));
-				        /// }
-				    /// }
-				 ///}	
-        	}
-			/// else {
-			 /// no selection and the group already exists
-			 //if (selection!=0) {
-			 /// haveto createthe groupand then destroyit to prevent destroying soething that dosen't exist:)
-				///  selection = new QGraphicsItemGroup();
-			    ///  scene->destroyItemGroup(selection);
-			    ///  qDebug()  << "destroyed old group";	
-			   //  }
-			///  }
-	    }
-	 if (mouseEvent->button() == Qt::MidButton) { 
-	     qDebug()  << "Mid released";
-	     //views().at(0)->fitInView(QRectF(0,0,800,800),Qt::KeepAspectRatio);
-		  //views().at(0)->setDragMode(QGraphicsView::NoDrag);
-		 // views().at(0)->centerOn(scene->
-		}
-	   
-	
-	}
-	
-	void Sheet::mouseMoveEvent(QGraphicsSceneMouseEvent *mouseEvent) {
-	 //qDebug()  << 
-	 //QPoint P= mouseEvent->screenPos();
-		 //if( mode==1 ) {
-		 //qDebug ()<<mouseEvent->screenPos();
-		 //mouseEvent->scenePos()
-		 //}
-		if (empty==0 && selection_empty==0) {		 
-	      if	(selected_nbr==1  && mode==1 ) {
-	      //qDebug ()<<"Moving" <<mouseEvent->screenPos();
-		 // qDebug ()<<selection->pos();
-		 if ((selectedItem->flags().testFlag(QGraphicsItem::ItemIsMovable)))
-		  selectedItem->setPos(mouseEvent->scenePos());
-		  //qDebug()<<selectedItem->pos();
-		  offsets.replace((selectedItem->data(0).toInt()),QPointFWithParent(selectedItem->pos().x(),selectedItem->pos().y()));
-	     //qDebug()<<offsets;
-		 // selection->setPos(mouseEvent->scenePos());
-	     }
-		}
-		/// emit signal with position to statubarqDebug () <<MainWindow::statusBar();
-		//qDebug () << mouseEvent->scenePos();
-	}
-
-	void Sheet::mousePressEvent(QGraphicsSceneMouseEvent *mouseEvent){
-		 mouseEvent->ignore();
-		
-		if (mouseEvent->button() == Qt::LeftButton) { 
-		  qDebug()  << "left";
-		  mode=1 ; /// moveitem
-		 //views().at(0)->setDragMode(QGraphicsView::RubberBandDrag);
-		 //QGraphicsItem *selectedItem=itemAt(mouseEvent->scenePos());
-		
-		}
-		
-		 if (mouseEvent->button() == Qt::MidButton) { qDebug()  << "Mid";}
-		 ///selectedItem  :Returns a list of all currently selected items. The items are returned in no particular order.
-		
-    }

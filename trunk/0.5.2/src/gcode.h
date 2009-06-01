@@ -1,24 +1,21 @@
 #ifndef GCODE_H
 #define GCODE_H
 
-/// use ifndef ...
-
-
 #include "qpointfwithparent.h"
 
   /**
-	 the class GCode implement some essential functions along with some optional one:
-	 -Add Header
-	 -Add line
-	 -Add arc
-	 -Add circle
-	 -Add line number
-	 -Add comment
-	 -Add EOF
-	 -Write to file
+	 the class GCode implement some essential functions along with some optional one: \n
+	 -Add Header \n
+	 -Add line \n
+	 -Add arc \n
+	 -Add circle \n
+	 -Add line number \n
+	 -Add comment \n
+	 -Add EOF \n
+	 -Write to file \n
 	 
   */
-  
+  /// Class writing the G-code to a file
   class GCode : public QTextStream{
   
 	 public:
@@ -51,9 +48,9 @@
 	  * @param cw if true go in ClockWise mouvment
 	  * @example
 	  
-	  	G1 X0.0 Y1.0 F20.0 ----go to X1.0, Y0.0 at a feed rate of 20 
-		G2 X1.0 Y0.0 I0.0 J-1.0 ----go in an arc from X0.0, Y1.0 to X1.0 Y0.0, with the center of the arc at X0.0, Y0.0 
-		G2 for a clockwise Arc , G3 for an anticlockWise one
+	  	G1 X0.0 Y1.0 F20.0 ----go to X1.0, Y0.0 at a feed rate of 20  \n
+		G2 X1.0 Y0.0 I0.0 J-1.0 ----go in an arc from X0.0, Y1.0 to X1.0 Y0.0, with the \n center of the arc at X0.0, Y0.0  \n
+		G2 for a clockwise Arc , G3 for an anticlockWise one \n
 	  */
 	 void ArcCut (QPointF p,qreal Z,QPointF p2,qreal radius,bool cw=true);
 	 

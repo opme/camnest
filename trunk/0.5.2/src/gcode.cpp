@@ -30,6 +30,8 @@
 	 comment(" feed per minute mode ");
 	 appendCode ("G94");
 	 /// @todo get Home at start option from settings 
+	 /// @todo get Feed rate value from settings 
+	 appendCode (" F 200");
 	 comment("Homing");
 	 home();
 	}
@@ -49,7 +51,7 @@ qreal radius;
 	 QPointFWithParent point(0,0);
 	 ///the center of a circle
 	 QPointFWithParent  circle(0,0);
-	 ///FIXME: a problem with qlist dimension size pos+2 to solve
+	 ///bug: a problem with qlist dimension size pos+2 to solve
 	 
 	 qDebug()<<"Writing the G-code of a loop composed of "<<closedLoop.size()<<"entities";
 	 /// we first go to the lead point if any
@@ -82,7 +84,7 @@ qreal radius;
 				 circleCenter=point;
 				 radius=point.parentRadius;
 				 if (plasmaMode) { 
-					 ///@todo make this homogene with genrated lead @fixme should get the point from lead
+					 ///@todo make this homogene with genrated lead @bug should get the point from lead
 					 attackPoint=point+QPointF(radius,0);
 					 feedRateMove(attackPoint);
 					  // now that we are on the circle cut it
@@ -108,7 +110,7 @@ qreal radius;
 					}
 				 pos++;
 			    }
-		 /// @fixme isn't this granted by feedRate and arccut?
+		 /// @bug isn't this granted by feedRate and arccut?
 		 setLastPos(point);
 		 //qDebug()<<"last point: ("<<lastX<<" , " << lastY<<")" ;
 		}	
@@ -183,7 +185,7 @@ qreal radius;
 	 lineNumber=lineNumber+10;
 	}
 	
-	///@fixme merge with appenedNumcode using .arg()
+	///@bug merge with appenedNumcode using .arg()
 	void GCode::appendCode ( QString code, QString value){
 	 addLineNumber();
 	 *this << code+ " "<< value<< " ";

@@ -13,29 +13,57 @@
 #include <QtGui>
 #include <QWidget>
 
+/// A special QGraphicsScene used for previewing a part or placing parts
  class Sheet: public QGraphicsScene {
   Q_OBJECT
   
   public:
+	 
+     /**
+      * 
+      * @param preview if true the scene is used to preview the part, else it's for parts placement
+      * @param parent the QGraphicsView parent
+      */
      Sheet(bool preview=true,QWidget *parent = 0);
-	 
+	 ///used for animating the cutter tool
 	 QBasicTimer timer;
-	 
+	 ///Penr of the line drawn when moving the tool
 	 QPen toolPen;
-//	 QSettings settings;
+	 ///@todo: use shape to detect if some parts are otu of the sheet within a margin.
 	 
-	 ///Rectangle representing the sheet metal bounds.@todo: use shape to detect if some parts are otu of the sheet within a margin.
-//	  QRect outlineRect;
-	  QGraphicsRectItem *sheetRect;
+	 /// Rectangle representing the sheet metal bounds if preview isn't set
+	 ///@see preview
+	 QGraphicsRectItem *sheetRect;
 	  
+          /**
+           * Set the sheetRect rectangle
+           * @param rect new Sheetrect value
+           */
           void setSheetRect(QRect rect=QRect(0,0,1,1));
+	  /**
+	   *        Moves the Pixmap of the cutter tool to the specfied point
+	   * @param endPoint Point coordinates to move the tool to
+	   */
 	  void moveTool(QPointF endPoint);
 	  
 	public slots:
-	 ///Clean up or start the animation
+	 //
+	 /**
+	  * Start the animation of the cutter OR Clean the scene
+	  * @param end if set Clean the scen else start the animation
+	  */
 	 void cleanUpAnim(bool end=false);
 	
+	
+	 /**
+	  * Zoom to show all the parts in the scene
+	  */
 	 void zoomFit();
+	 
+	 /**
+	  * Zoom in / out by a factor
+	  * @param in if set to true Zoom in else zoom Out
+	  */
 	 void zoom(bool in=true);
 	 
 	 protected:
@@ -46,12 +74,20 @@
 	 void timerEvent(QTimerEvent *event);
 	
 	 signals:
+	 
+	 /**
+	  *        Used to track the loop being drawn in animation mode
+	  * @param currentLoop The loop pos to draw
+	  */
 	 void progressionDone(const int currentLoop);
-	 //void animatonEnded();
 	 private:
+	 ///access The application config settings for colors/preferences
 	 QSettings settings;
+	 /// to track the selection (not in preview mode)
 	 bool selectedSome;
          /// @note: a sheet can be for part previews or for parts placing( sheet metal)
+	 /**If set the sheet is for part preview else its for parts placement
+	 */
          bool preview;
  
  };

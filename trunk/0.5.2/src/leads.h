@@ -26,10 +26,11 @@ class Loop;
      void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget);
 
  private:
-    
-     Lead *source, *dest;;
+    QSettings settings;
+     Lead *source, *dest;
      QPointF sourcePoint;
-     
+      /// for graphical represezntation of the laser path between lead-in/out
+        //double leadRadiusMotion;
      QPointF destPoint;
      qreal arrowSize;
  };
@@ -40,8 +41,8 @@ class Lead: public QGraphicsItem {
 	 public :
          ///constructor for leads certain/uncertain
 	 Lead (Loop *loop);
-	 /// @todo create a more useful constructor
-         ///constructor for lead touch
+         /// @todo create a more meaningfull constructor
+         /// create the Lead out= lead touch
 	 Lead(Loop *loop,int j );
 	 virtual ~Lead();
 	 
@@ -63,7 +64,7 @@ class Lead: public QGraphicsItem {
 	
 	 Loop *myLoop;
 	 
-     QPointFWithParent *myPos;  
+         QPointFWithParent *myPos;
 	 QPointFWithParent leadTouch;
 	 
 	 Edge *myEdge;
@@ -72,8 +73,9 @@ class Lead: public QGraphicsItem {
 	 
 	 ///@todo cleanup private public
 	   QRectF laserRect;
-       /// for graphical represezntation of the laser trace on the part
+       /// for graphical represezntation of the laser lead-in/out
 	double leadRadius;
+
 	QSettings settings;
 	 protected:
      /// called by QGraphicsItem to notify custom items that some part of the item's state changes. 

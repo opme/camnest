@@ -61,6 +61,7 @@ SettingsDialog::SettingsDialog(QWidget *parent)   : QDialog(parent)
 	settings.beginGroup("Leads");
 	settings.setValue("radius", leadRadiusSB->value ());
 	settings.setValue("angle", leadAngleSB->value ());
+        settings.setValue("radiusMotion", leadRadiusMotionSB->value ());
 	settings.setValue("leadDist", leadDistSB->value ());
 	settings.setValue("minLeadDist",minLeadDistSB->value ());
 	settings.endGroup();	 
@@ -69,6 +70,8 @@ SettingsDialog::SettingsDialog(QWidget *parent)   : QDialog(parent)
 	 settings.setValue("sheetH", sheetH->value ());
 	 settings.setValue("sheetW", sheetW->value ());
          settings.setValue("colorizeInner", InnerColorSheetCHK->checkState());
+         settings.setValue("optPath", optPathCB->checkState());
+         settings.setValue("plasmaMode", plasmaCB->checkState());
 	 settings.endGroup();
 	 ///@todo emit signal to update scenes
 
@@ -95,12 +98,21 @@ SettingsDialog::SettingsDialog(QWidget *parent)   : QDialog(parent)
 	 }
 	 //*****************leads proerties ***************
 	 leadRadiusSB->setValue(settings.value("Leads/radius").toDouble());
+         leadRadiusMotionSB->setValue(settings.value("Leads/radiusMotion").toDouble());
 	 leadAngleSB->setValue(settings.value("Leads/angle").toInt());
 	 minLeadDistSB->setValue(settings.value("Leads/minLeadDist").toDouble());
 	 leadDistSB->setValue(settings.value("Leads/leadDist").toDouble());
          //**********************Sheet metal props*********************
          sheetW->setValue(settings.value("Options/sheetW").toInt());
          sheetH->setValue(settings.value("Options/sheetH").toInt());
+
+         //**************Various options****************
+         if (settings.value("Options/optPath").toInt()==2) {
+         optPathCB->setCheckState(Qt::Checked);
+         }
+           if (settings.value("Options/plasmaMode").toInt()==2) {
+         plasmaCB->setCheckState(Qt::Checked);
+         }
 	 
 	 }
 	 

@@ -50,7 +50,7 @@ class Loop : public QGraphicsItem{
 	 int loopNumber;
 	 ///Weither or not the loop is a circle
 	 bool isCircle;
-	 ///Weither or not the loop is the part outline
+         ///Used to mark the outline loop (in plasma mode)
 	 bool isOutline;
 	 ///used to stat painting the path when appropriate
 	 bool ready;
@@ -60,7 +60,7 @@ class Loop : public QGraphicsItem{
 	 /// the loop start/end point. If it's a closed one, then startPoint=endPoint
 	 QPointFWithParent startPoint;
 	 QPointFWithParent endPoint; 
-	 /// @note Mayeb should remove touchPoin and replace startPoint with this value for both g-code and Optimi
+         /// @note Remove touchPoin and use eiher Start or endPoint instead for both g-code and Optimi
 	 QPointFWithParent touchPoint;
 	 
 	 void setReady(bool b){ready=b;if (b) update();}
@@ -119,7 +119,8 @@ public:
 	 
 	 int leadAngle;
 	 double leadDist;
-	  
+         /// used to approximate lead surface.
+         double leadRadius;
 	   
 	 
 	 ///@see COPY constuctor
@@ -188,7 +189,7 @@ public:
 	 void optimizeRoute();
 	 void moveMeBy(qreal dx, qreal dy);
 	  
-	 void setPartName(QString f){partName=f;};
+         void setPartName(QString f){partName=f;}
 	
 	 /** this matrix holds the transformations applied to the part, transformations can be one of the following:
 	 / translation , rotation ,shearing. wWe'll discard shearing and keep both translation and rotation

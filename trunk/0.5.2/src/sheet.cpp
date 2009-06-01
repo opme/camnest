@@ -9,30 +9,61 @@
 	 /// As the lead-points are independant from the part we create them on them own
 	 Part *piece;
 	///@todo: get from settings dialog
-	 bool PlasmaMode=true;
-
+         /// margin used to properly show piece in preview sheet @todo Add in option dialog
+         const int rectMarg=20;
+         /// Timer update interval @todo Add in option dialog
+         int animSpeed=600;
 	 ///@todo: reassign the parts list to sheet metal scen and do the appropriate cha,ges
 	 ///the parts appended to the sheetMetal
 	 QList <Part *> parts;
 
   	
+         int animStep=0;
 	 void MainWindow::nextPoint(int currentLoop){
+
+            if (plasmaMode){
 	 ///check for animation end
-	  if (currentLoop == piece->partLoops.size()) {
-			 qDebug()<<"Stoping the animation";			 
-			 ///Fixme use signals instead of direct access!
+          if (currentLoop/2 == piece->partLoops.size()) {
+                         //qDebug()<<"Stoping the animation";
+                         /// @todo use signals instead of direct access!
 			  previewScene->cleanUpAnim(true);
 			  previewScene->timer.stop();
                           trigActions(true);
-			  stepAction->setText(tr("Animate"));	
+                          stepAction->setText(tr("Animate"));
 			  return;
 			} 
-	 loadingBar->setValue(currentLoop);
-	 previewScene->moveTool(piece->partLoops.at(currentLoop)->startPoint);
-	 piece->partLoops.at(currentLoop)->setVisible(true);
-	
-	 
-	}
+
+         if (animStep%2==0){
+         previewScene->moveTool(piece->partLoops.at(currentLoop/2)->leadIn);
+     }
+         else {
+           previewScene->moveTool(piece->partLoops.at(currentLoop/2)->touchPoint);
+         }
+         animStep++;
+         loadingBar->setValue(currentLoop/2);
+         piece->partLoops.at(currentLoop/2)->setVisible(true);
+     }
+            /// if plasma mode is not active we go from one loop to another (no leads are present)
+            else {
+
+                if (currentLoop == piece->partLoops.size()) {
+                         //qDebug()<<"Stoping the animation";
+                         /// @todo use signals instead of direct access!
+                          previewScene->cleanUpAnim(true);
+                          previewScene->timer.stop();
+                          trigActions(true);
+                          stepAction->setText(tr("Animate"));
+                          return;
+                        }
+         previewScene->moveTool(piece->partLoops.at(currentLoop)->startPoint);
+
+         loadingBar->setValue(currentLoop);
+         piece->partLoops.at(currentLoop)->setVisible(true);
+     }
+
+        }
+
+
 	
 	 ///@todo: rename button Animate to Stop and disable all other buttons
    void MainWindow::stepByStep (){
@@ -50,7 +81,7 @@
 		stepAction->setText(tr("Animate"));
 		}
 	 else{
-		 ///@fixme have to disable everything or the application crashes=> disable listView and folderView
+                 /// @bug have to disable everything or the application crashes=> disable listView and folderView
 		 trigActions(false);
 		 stepAction->setEnabled(true);
 		 stepAction->setText(tr("STOP"));
@@ -60,7 +91,7 @@
 			 cLoop->setVisible(false);
 			}
 		 previewScene->cleanUpAnim();
-		 previewScene->timer.start(400, previewScene);
+                 previewScene->timer.start(animSpeed, previewScene);
 		}
 	}
 
@@ -152,12 +183,12 @@
 		 piece->setPartName(partName);
 		 ///Add little margin to show outline lead correctly
 		 QRectF contRect=piece->boundingRect();
-		 contRect.setHeight(contRect.height()+9);
-		 contRect.setWidth(contRect.width()+9);
+                 contRect.setHeight(contRect.height()+rectMarg);
+                 contRect.setWidth(contRect.width()+rectMarg);
 		 previewSheet->setSceneRect(contRect);
-		 previewScene->addItem(piece);
-		 
-		 
+
+                 piece->setPos(rectMarg/2,rectMarg/2);
+                 previewScene->addItem(piece);
 		 ///connect((QObject*)piece,SIGNAL(progressionStep()),this,SLOT(progressionDone()));
 		 previewScene-> zoomFit();
 		 ///insertedParts=previewScene->items().size();//// FIXMEne marche plus lorsqu'on add le ttolPix		 
@@ -279,7 +310,7 @@
 			 ///First we go to the lead-in Point
 			 partGCode.comment("Going to lead-in point");
 			 partGCode.comment("Going to Z home");
-			 if (PlasmaMode){
+                         if (plasmaMode){
 				//partGCode.comment("Going to leadPoint");
 				qDebug()<<"Going to leadPoint "<<parts.at(j)->gLeadPoints.at(i);//parts.at(j)->partLoops[i]->leadIn;
 				//partGCode.rapidMove (parts.at(j)->partLoops[i]->leadIn);
@@ -309,13 +340,17 @@
 	 if (scene->timer.isActive()) scene->timer.stop();
 	 ///FXIXME : produces a crash
 	 scene->clear();
+         // restore the sheet foil
+         updateRectDims();
 	 //previewScene->clear();	 
 	 parts.clear();	  
 	 insertedParts=0;
 	 nbrParts=0;
+         partsModel->removeRows(0,partsModel->rowCount());
 	 /// Disable action
-	 trigActions(false);
-	 ///@todo: if a part is being preview enable the insert button
+	 //trigActions(false);
+
+         saveAction->setEnabled(false);
 	 statusBar()->setPalette(infoText);
 	 statusBar()->showMessage(tr("Cleared Scene"));
 	}
@@ -529,7 +564,7 @@
 	 ///@note:there is no toColor(), toImage(), or toPixmap() functions in QVariant.
 	  contourPen =QPen (settings.value("Colors/brush").value<QColor>());
 	  contourBrush=QBrush (settings.value("Colors/pen").value<QColor>());
-
+          plasmaMode=settings.value("Options/plasmaMode").toBool();
 	///@todo: get from settings
 	  infoText =QPalette(Qt::black,Qt::black,Qt::black,Qt::black,Qt::black,Qt::black,Qt::black,Qt::black,Qt::black);
 	   errorText =QPalette(Qt::red,Qt::red,Qt::red,Qt::red,Qt::red,Qt::red,Qt::red,Qt::red,Qt::red);
@@ -596,7 +631,7 @@
 	 partsModel= new PartsListModel(partsNames);
 	 //loadingBar->setMinimumSize(200,20);
 	 //loadingBar->resize(250,20);
-	 loadingBar->setMaximumSize(450,30);
+         loadingBar->setMaximumSize(750,30);
 	 
 	
 	 previewHS->setOrientation(Qt::Vertical);
@@ -762,7 +797,7 @@
          connect(rotateByAction, SIGNAL(triggered()),this, SLOT(setRotAngle()));
 
          connect(settingsAction, SIGNAL(triggered()),this, SLOT(showSettings()));
-         connect(&settingsDlg, SIGNAL(accepted()),this,SLOT(updateSettings()));
+         connect(&settingsDlg, SIGNAL(accepted()),this,SLOT(updateRectDims()));
 
 	 connect(zoomFitAction, SIGNAL(triggered()),this, SLOT(zoomFit())); 
          connect(saveAction, SIGNAL(triggered()),this, SLOT( saveGCode()));
@@ -808,6 +843,7 @@
   	void MainWindow::nameObjects(){
 	
 	 previewDock->setObjectName("previewDock");
+         ///@Todo set file list and folder view max Size
 	 filesListDock->setObjectName("filesListDock");
 	 dockInsertedParts->setObjectName("dockInsertedParts");
 	 
@@ -819,7 +855,7 @@
 	 }
   
   MainWindow::MainWindow(){
-        setWindowTitle(tr("CamNest V0.5.1 debug"));
+        setWindowTitle(tr("CamNest V0.5.2 debug"));
 	 
 	  
 	 ///@fixme find a way to put qactions for docks after creating GUI compoment like toolbars and menus.
@@ -860,8 +896,11 @@
 	 
     }
     
- void MainWindow:: updateSettings() {
+ void MainWindow:: updateRectDims() {
      //@fixme the signal is emited twice
+      plasmaMode=settings.value("Options/plasmaMode").toBool();
+      /// @note is the sheet only needed in plasma mode ?
+      //if (plasmaMode) {
          int h=2000;
          int w=3600;
          qDebug()<<"changing sheet dims";
@@ -884,7 +923,8 @@
     	 void MainWindow::createSheets() {	 
 	 ///@todo: take the sheet metal size from config dialog
      	 scene=new  Sheet (false);
-         updateSettings();
+         updateRectDims();
+
 	 sheet = new QGraphicsView(scene);
 	 ///We draw the recatnagle representing the sheetMetak
 	 ///@todo: add option for background color
@@ -895,9 +935,11 @@
          previewScene->setSceneRect( QRect (0, 0, 400, 400));
 
         previewSheet = new QGraphicsView(previewScene);
+        previewSheet->setCacheMode( QGraphicsView::CacheBackground);
+        previewSheet->setCacheMode( QGraphicsView::CacheNone);
         previewSheet->setDragMode(QGraphicsView::RubberBandDrag);//->setRubberBandSelectionMode(Qt::IntersectsItemBoundingRect);
         //previewSheet->setDragMode(QGraphicsView::ScrollHandDrag);
-        //previewSheet->setCacheMode( QGraphicsView::CacheNone);
+
         //previewSheet->setViewportUpdateMode (QGraphicsView::SmartViewportUpdate);
 
         /// @todo:ADD OPTION USE OPENGL
@@ -914,16 +956,11 @@
          sheet->setRubberBandSelectionMode(Qt::IntersectsItemShape);
 	 sheet->setDragMode(QGraphicsView::RubberBandDrag);
     	}
-	
-    
 
- 
-   
  
   void MainWindow::about()
 {
   
      QMessageBox::about(this, tr("About CamNest"),
-                       tr("<b>CamNest</b> Dxf Viewer and Parts neting software "));
+                       tr("<b>CamNest</b> Dxf Viewer and G-code generation software"));
 }
- 

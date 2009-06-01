@@ -32,7 +32,7 @@ class QPointFWithParent : public QPointF {
 	 double angle1;
 	 double angle2;
 	 bool cWise;
-	 ///TODO : use inline functions here 
+	 
 	 void setLeadTouch(QPointF myLeadTouch){ leadTouch=myLeadTouch;}
 	 
 	 /// TODO: rename to setParentLoop for homongenity

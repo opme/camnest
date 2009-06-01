@@ -1,4 +1,5 @@
 #include "gatsp.h"
+
 Chromosome *parent1;
 Chromosome *parent2;
 Chromosome *mutated;
@@ -6,12 +7,87 @@ Chromosome parentOne;
 Chromosome parentTwo;
 Chromosome child;
 /* given a set of points we create a population*/
+///@note Are those set by the compiler as STATIC ????
+int nbrElite1=0;
+int nbrElite2=0;
+int nbimporte=0;
+/// to follow the created generations number
+int curGen=0;
+/// mutation rate is given in %
+int mutRate=20;
+/// mutation number = Pop size/ mutation rate
+int mutNbr;
 
-/// @todo: The only thing we nedd from QPOintWithParent is the ParentLoop!!Imporvo this by overloading it
-	///@fixme: Urgent have to stor all the compiuted disantce and to reuse them when dneeded
-	qreal dist(QPointFWithParent p1,QPointFWithParent p2) {
-	///@fixme what da hell !!!
-	 return QLineF(p1,p2).length();
+	Popu::Popu(){	
+	 totalRoute=0;
+         popSize=16;
+         Max_iter=10;
+	 chromoSize=1;
+         mutNbr=((popSize/100)*mutRate);
+          //qDebug()<<mutNbr;
+          if (mutNbr==0) {mutNbr=1;}
+         //mutNbr = (mutNbr=0) ? 1 : mutNbr;//if (mutNbr==0
+         //qDebug()<<mutNbr;
+         mutNbr=2;
+
+	 }
+
+
+         QPFWPVector Popu::init(QPFWPVector points,bool randomtartupPop){
+	 
+	 int i=0;
+         chromoSize=points.size();
+          qDebug()<<"Creating initial Rpop";
+	 ///create a population of @see popSize chromosome. The chromosome elements are taken randomly from parent @see points
+	 while (i<popSize){
+		 Chromosome member;
+                 member.setElements(points,randomtartupPop);
+		 content.append(member);
+                 //fixme: need to be computed only once
+                 totalRoute=member.routeLength;
+		 i++;
+		}
+	
+         qDebug()<<"Created an initial Random pop with route:"<<totalRoute;
+	
+         sortContent();
+	 /// copy the created population into newGen
+	 newGen=content;
+	 /// Keep creating new genrations until @see Max_iter
+         for (curGen=0;curGen<Max_iter;curGen++){
+		 createNewGen();
+		}
+
+	return content[0].elements;
+
+	 }
+
+	void Popu::sortContent(){
+		for(int i = popSize - 1; i > 0; i--) {
+			for(int j = 0; j < i; j++){
+				if(content[j].fitness > content[j + 1].fitness){
+				Chromosome chromosome = content[j + 1];
+				content[j + 1] = content[j];
+				content[j] = chromosome;
+				}
+			}
+		}
+        qDebug()<<"Best generation"<< curGen <<"length:"<<content[0].routeLength;
+	}
+
+/// @todo The only thing we nedd from QPOintWithParent is the ParentLoop!!Imporvo this by overloading it
+	///@todo Have to stor all the compiuted disantce and to reuse them when dneeded
+	
+	/**
+	 * 
+	 * @param p1 First point
+	 * @param p2 second point
+	 * @return Cartesian distance between p1 and p2
+	 */
+	qreal dist(QPointFWithParent p1,QPointFWithParent p2) {	 
+	 //qDebug()<<QLineF(p1,p2).length();
+	 return sqrt(((p1.x()-p2.x())*(p1.x()-p2.x()))+((p1.y()-p2.y())*(p1.y()-p2.y())));
+	 //return QLineF(p1,p2).length();
 	}
 	
 	
@@ -20,120 +96,88 @@ void swapVals(QPFWPVector &vect,int pos1,int pos2){
 	 vect[pos2]=vect[pos1];
 	 vect[pos1]=temp;
 	}
-	
-	Popu::Popu(){	
-	 totalRoute=0;popSize=10;Max_iter=50;chromoSize=1;	 
-	 }
-	 
-	 /// creates a population from a given set of Qpoints
-	 QPFWPVector Popu::init(QPFWPVector points){
-	 Chromosome member;int i=0;chromoSize=points.size();
-	 
-	 while (i<popSize){
-		 //qDebug()<<"Adding  the "<<i<<"chromo";
-		 Chromosome member;
-		 member.setElements(points,true);
-		 content.append(member);
-		 totalRoute+=member.routeLength;
-		 i++;
-		}
-	
-	 qDebug()<<"Created an initial Random pop with route:"<<totalRoute;
-	 ///We now sort the population according to its content fitness
-	  sortContent();
-	   for (int k=0;k<popSize;k++){
-	 //qDebug()<< content.at(k).elements;
-	 qDebug()<< content.at(k).fitness;
-	 }
-	 qDebug()<<"Population sorted";
-	 
-		//content.replace(0,parentOne);
-		//content.replace(1,parentTwo);
-	 newGen=content;
-	 for (int j=0;j<Max_iter;j++){
-		 
-		 createNewGen();
-		}
-	 ///we return the best encountred child ever!
-	/// if (child.routeLength >parentOne.routeLength) {child=parentOne;}
-	/// if (child.routeLength >parentTwo.routeLength) {child=parentTwo;}
-	 qDebug()<<"The ultimate route: "<<content[0].routeLength;
-	// for (int k=0;k<chromoSize;k++){
-	 //qDebug()<< content[0].elements.at(k).parentLoop;
-	 //}
-	  ///return child.elements;
-	    return content[0].elements;
-	 }
+
+
 	 
  void Popu::createNewGen(){
-	 ///Apply Ellitism by keeping the 2 first chromosomes
 	 
+	 ///Apply Ellitism by keeping the 2 first chromosomes	 
 	 newGen[0]=content[0];
 	 newGen[1]=content[1];	
-	 ///qDebug()<<"Ellistism performed"<<content[0].fitness<<content[1].fitness; 
-	 
-	 for (int i=2; i<popSize;i=i+2){
-		  selectParents(&parentOne,&parentTwo,i);	 
-		 ///child=cross(parentOne,parentTwo); As crossover is a failure for now simply copy one parent as is
-		 ///child=parentOne;
-		 ///child=cross(parentOne,parentTwo);
-		 ///content[i]=child;
-		 ///child=cross(parentOne,parentTwo);
-		 ///content[i+1]=child;
+	 //qDebug()<<"Ellistism performed"<<content[0].fitness<<content[1].fitness; 
+	 /// All parents expect the elites are mutated
+	 for (int i=2; i<popSize;i++){
+		   //selectTwoParents(&parentOne,&parentTwo,i);	 
+		 //child=cross(parentOne,parentTwo); As crossover is a failure for now simply copy one parent as is
+		 //child=parentOne;
+		 //child=cross(parentOne,parentTwo);
+		 //content[i]=child;
+		 //child=cross(parentOne,parentTwo);
+		 //content[i+1]=child;
 		 //qDebug()<<"Generated"<<child.elements<<" route="<< child.routeLength;
 		 //qDebug()<<"from parents"<< parentOne.elements<<parentTwo.elements;
-		  ///qDebug()<<"Generated"<< child.routeLength<<"from parents"<<parentOne.routeLength<<parentTwo.routeLength;
-		 ///if (child.routeLength >parentOne.routeLength) {child=parentOne;}
-		 ///if (child.routeLength >parentTwo.routeLength) {child=parentTwo;}	 
+		  //qDebug()<<"Generated"<< child.routeLength<<"from parents"<<parentOne.routeLength<<parentTwo.routeLength;
+		 //if (child.routeLength >parentOne.routeLength) {child=parentOne;}
+		 //if (child.routeLength >parentTwo.routeLength) {child=parentTwo;}	 
 		 //qDebug()<<"Starting Mutation";
 		 //qDebug()<<"Starting Mutation";
-		 ///mutate(i);
-		 mutateImprove(i);
+		 //mutate(i);
+                 /// mutation is done at given rate
+            // if (i<mutNbr+2){
+             //mutateImprove(i);
+             mutateImproveMe(i);
+                  //mutate(i);
+        // }
+
 	 }
-	 ///qDebug()<<"New generation created";
+	 //qDebug()<<"New generation created";
 	 content=newGen;
-	 //newGen.clear();
-	  sortContent();	 	
+	 sortContent();
 	}
 	 
-	 /// todo: create a function that return the pop/chromosome size for brievty
-	void Popu::mutate(int pos){
-	 /// given an offspring we mutate it at a certain rate and create the new population
-	 int pos1=0,pos2=3;//size=offspring.elements.size();
-	  QTime t;int rd=3;
-	  Chromosome mutant;
-	 ///NOTE: As we kept the 2 best parents as are (ellitisme) we start from 2
-	 for (int i=0;i<2;i++){
-		 if (i==0)
-				mutant=parentOne;
-			else 
-				mutant=parentTwo;
+         void Popu::mutateImproveMe(int pos){
+		Chromosome toImprove;
+                //we mutate beginig from an elite parent
+                if (qrand()%3==0) {
+                toImprove=content[0];
+                nbrElite1++;
+                }
+              // We mutate a random chromosome
+                else if (qrand()%3==1){
+                toImprove=content.at(pos);
+                nbimporte++;
+            }
+                else {
+                toImprove=content[1];
+                nbrElite2++;
+                }
 
-		 for (int j=0;j<chromoSize;j++){
-			 rd=qrand()%chromoSize;
-			 //qDebug()<<rd;
-			 ///DFFIXME : make it dependant on a variable value Mut_prob the probability should be small
-			 if (rd >chromoSize-(chromoSize/5)) {
-				 //qDebug()<<"creating a mutant";
-				 pos1=qrand()%chromoSize;
-				 //qsrand(QTime::msec ());
-				 pos2=qrand()%chromoSize;
-				 //qDebug()<<pos2<<pos1;
-				 //mutant.elements.swap(pos1,pos2);
-				 swapVals(mutant.elements,pos1,pos2);
-				}		
-			 ///qDebug()<<mutant.elements<<"route"<< mutant.routeLength;
-			 
-		    }
-		 mutant.setRoutelength();
-		 ///qDebug()<<"creating a mutant at "<<pos+i<<"routes"<< mutant.routeLength;
-		 newGen.replace(pos+i,mutant);
-		//qDebug()<<newGen.size();
+		int orignalRouteLength=toImprove.routeLength;
+		int pos1=1;
+		int pos2=2;
+		int oldRouteLength=orignalRouteLength;
+		for (int j=0;j<chromoSize;j++){
+			pos1=qrand()%chromoSize;
+			pos2=qrand()%chromoSize;
+			while (pos2==pos1){
+			pos2=qrand()%chromoSize;
+			}
+			oldRouteLength=toImprove.routeLength;
+			swapVals(toImprove.elements,pos1,pos2);
+			toImprove.calcRouteLength();
+			
+                        if ( toImprove.routeLength>oldRouteLength){
+                                swapVals(toImprove.elements,pos1,pos2);
+                                toImprove.calcRouteLength();/// could be simplier =oldRouteLength ?
+                        }
 		}
-	}
-	
+	 newGen.replace(pos,toImprove);
+	 
+	 }
+
+	 
 	void Popu::mutateImprove(int pos){
-	  //qDebug()<<"not  mutant";
+	  
 	  Chromosome toImprove;
 		 /// Time to improve the route (randomly for now) even the elite are concerned
 		 for (int i=0;i<2;i++){
@@ -149,31 +193,42 @@ void swapVals(QPFWPVector &vect,int pos1,int pos2){
 				 int pos2=qrand()%chromoSize;
 				 int oldRouteLength=toImprove.routeLength;
 				 //toImprove.elements.swap(pos1,pos2);
-				  swapVals(toImprove.elements,pos1,pos2);
-				 toImprove.setRoutelength();
+				 swapVals(toImprove.elements,pos1,pos2);
+				 toImprove.calcRouteLength();
 				// qDebug()<<toImprove.routeLength<<oldRouteLength;
 				 ///undo changes as this become worse than before
 				 if ( toImprove.routeLength>oldRouteLength){
 					 //toImprove.elements.swap(pos1,pos2);
-					 swapVals(toImprove.elements,pos1,pos2);					 
-					 toImprove.setRoutelength();/// could be simplier =oldRouteLength ?
+					 swapVals(toImprove.elements,pos1,pos2);
+					 toImprove.calcRouteLength();/// could be simplier =oldRouteLength ?
 					 //qDebug()<<"no changes";
 					}
-					else{
-					 ///Improving (keeping changes)
-					}
+					//else{
+					 ///keep changes
+					//}
 				}
 				newGen.replace(i+pos,toImprove);
-				///qDebug()<<"Improved*********"<<toImprove.routeLength<<orignalRouteLength;
+				//newGen.replace(pos,toImprove);
+				//qDebug()<<"Improved*********"<<toImprove.routeLength<<orignalRouteLength;
 				//qDebug()<<toImprove.elements;
 				 //qDebug()<<"improved mutant routes"<< toImprove.routeLength;
 			 	
 			}
 	 }
 	 
-	 
-	 
-	 ///FIXME: ameliortae parent selection process
+	 void Popu::selectTwoParents(Chromosome* p1,Chromosome* p2,int posd){
+	 //We have to start from 2 to skip elite parents
+	 int k=posd;
+	 int bestfitPos=2,bestfitOldPos=2;
+	 double bestfit=10000,bestfitOld=10000,tempfit=0;
+	 Chromosome mem;	
+	 *p1=content.at(posd);
+	 *p2=content.at(posd+1);
+	 return ;
+	}		  
+	
+	
+	 ///@todo: ameliortae parent selection process
  void Popu::selectParents(Chromosome* p1,Chromosome* p2,int posd){
 	 //We have to start from 2 to skip elite parents
 	 int k=posd;
@@ -206,19 +261,8 @@ void swapVals(QPFWPVector &vect,int pos1,int pos2){
 	 return ;
 	}		  
 	
-	 
-	void Popu::sortContent(){
-	  for(int i = popSize - 1; i > 0; i--) {
-            for(int j = 0; j < i; j++){
-                if(content[j].fitness > content[j + 1].fitness){
-                    Chromosome chromosome = content[j + 1];
-                    content[j + 1] = content[j];
-                    content[j] = chromosome;
-                }
-			}
-		}
-		///qDebug()<<"generation sorted";
-    }    
+	  
+
 		
     void Popu::computeTotalRoute(){
 	 
@@ -226,6 +270,42 @@ void swapVals(QPFWPVector &vect,int pos1,int pos2){
 	 
 	}
 	 
+	
+	
+	void Popu::mutate(int pos){
+	 
+	 int pos1=0,pos2=3;//size=offspring.elements.size();
+	  //QTime t;
+	  int rd=3;
+	  Chromosome mutant;
+	 
+	 for (int i=0;i<2;i++){
+		 if (i==0)
+				mutant=parentOne;
+			else 
+				mutant=parentTwo;
+
+		 for (int j=0;j<chromoSize;j++){
+			 ///@todo make it dependant on a variable value Mut_prob the probability should be small
+			 rd=qrand()%chromoSize;
+			 if (rd >chromoSize-(chromoSize/5)) {
+				 //qDebug()<<"creating a mutant";
+				 pos1=qrand()%chromoSize;
+				 //qsrand(QTime::msec ());
+				 pos2=qrand()%chromoSize;
+				 //qDebug()<<pos2<<pos1;
+				 swapVals(mutant.elements,pos1,pos2);
+				}		
+			 //qDebug()<<mutant.elements<<"route"<< mutant.routeLength;			 
+		    }
+		 mutant.calcRouteLength();
+		 //qDebug()<<"creating a mutant at "<<pos+i<<"routes"<< mutant.routeLength;
+	///@NOTE: As we kept the 2 best parents as are (ellitisme) and i>0 at while loop end we keep the elite
+		 //newGen.replace(pos+i,mutant);
+		newGen.replace(pos,mutant);		 
+		//qDebug()<<newGen.size();
+		}
+	}
 	
 	 /// returns an offspring from 2 parents
 	Chromosome Popu::cross(Chromosome parent1, Chromosome parent2){
@@ -249,31 +329,32 @@ void swapVals(QPFWPVector &vect,int pos1,int pos2){
 	 for (int i=0;i< sizeFixe-2;i++){
 		 posOther=otherParent.elements.indexOf(currentVal);
 		 pos=activeParent.elements.indexOf(currentVal);
-		 ///check for case at list end => start at a random pos if so 
-		/// if (posOther==size ){			 
-			 ///TODO:try with the other point before giving up
-				///if (referenceParent.elements.size()!=0){
-				/// int j=0;
-				/// while (offspring.elements.contains(referenceParent.elements.at(j))){
-				/// posOther=otherParent.elements.indexOf(referenceParent.elements.at(j));
-				/// qDebug()<<"looping back randomly";j++;
-				/// }
-				/// qDebug()<<"stopped at" <<j;
-				///}
-		    ///}
-		/// if (pos==size) {	
-		///	if (referenceParent.elements.size()!=0){
-		///	 int k=0;
-		///		 while (offspring.elements.contains(referenceParent.elements.at(k))){
-		///		 posOther=otherParent.elements.indexOf(referenceParent.elements.at(k));
-		///		 qDebug()<<"looping back randomly";k++;///i++;
-		///		 }
-		///		 qDebug()<<"stopped at" <<k;
-				//currentVal=referenceParent->elements.takeAt(0);
-		///	}
-		///}
-		 /// qDebug()<<"We're in pos="<<pos<<" Other parent contains"<<currentVal<<" at pos"<<posOther<<"size="<<size;
-		/// recheck if the random city is at list end : this tile we have to go to list begin
+		 /**
+		 //check for case at list end => start at a random pos if so 
+		if (posOther==size ){			 
+			 //TODO:try with the other point before giving up
+				if (referenceParent.elements.size()!=0){
+				 int j=0;
+				 while (offspring.elements.contains(referenceParent.elements.at(j))){
+			   posOther=otherParent.elements.indexOf(referenceParent.elements.at(j));
+				qDebug()<<"looping back randomly";j++;
+			 }
+				 qDebug()<<"stopped at" <<j;
+				}
+		    }
+		 if (pos==size) {	
+			if (referenceParent.elements.size()!=0){
+			 int k=0;
+				 while (offspring.elements.contains(referenceParent.elements.at(k))){
+				 posOther=otherParent.elements.indexOf(referenceParent.elements.at(k));
+				 qDebug()<<"looping back randomly";k++;///i++;
+				 }
+				 qDebug()<<"stopped at" <<k;
+				currentVal=referenceParent->elements.takeAt(0);
+			}
+		}
+		  qDebug()<<"We're in pos="<<pos<<" Other parent contains"<<currentVal<<" at pos"<<posOther<<"size="<<size;
+		 //recheck if the random city is at list end : this tile we have to go to list begin **/
 		 if (posOther==size || posOther>size) {
 			 ///TODO:try with the other point before giving up
 			 posOther=0;///qDebug()<<"have to loop back";
@@ -357,12 +438,12 @@ void swapVals(QPFWPVector &vect,int pos1,int pos2){
 	 offspring.elements.append(referenceParent.elements.at(0));
 	 referenceParent.elements.remove(0);
 	 //}
-	 offspring.setRoutelength();
+	 offspring.calcRouteLength();
 	 return offspring;
 	} 
 
 		  ///Compute the chromosome tour length
-void Chromosome::setRoutelength(){
+void Chromosome::calcRouteLength(){
 	 routeLength=0;//qDebug()<<elements;
 	 for (int i=0;i<elements.size()-1;i++){
 		 //if (i%2==1){
@@ -370,7 +451,7 @@ void Chromosome::setRoutelength(){
 			 routeLength+=dist(elements.at(i),elements.at(i+1));
 		   // }
 	    }
-	 fitness=routeLength; ///FIXME for now fitness=lenght change when switching to roulette...
+	 fitness=routeLength; 
 	 return ;
 	}	
 		
@@ -384,40 +465,31 @@ void Chromosome::setElements(QPFWPVector points,bool random){
 	 
 	 while (i<MySize){
 		 size=points.size();
-		 ///note: to prevent takin pos out of list range we update size every time we take a value
+		 ///@note: to prevent takin pos out of list range we update size every time we take a value
 		 if (random){
 			 pos=qrand()%size;
 		 }
 		 else{
-			 pos=i;
+                         pos=0;
 		 }
 		
 		 newChrom.append(points.at(pos));
 		 points.remove(pos);
 		 //if (i%2==1) { /// time to compute the distance	
-		 ///FIXME: manage to store the distances matrix to recal it when neede instead of recomputing the values
+		 ///@FIXME: manage to store the distances matrix to recal it when neede instead of recomputing the values
 		 ///every time we need them, or is it a time wasting operation to be droped ?
 			// routeLength+=dist(newChrom.at(i),newChrom.at(i-1));
 			//}
 		 i++;		
 		}
 		 elements =newChrom;
-		setRoutelength();
+		calcRouteLength();
 	 //setFitness(routeLength);
 	 //qDebug()<<"route length"<<routeLength;
 	
 	 }
 	 
-	 
-	 
-	 
-	 
-	 
-	 
-	 
-	 
-	 
-	 
+
 Population::Population(QPFWPVector points){
 	 int i=0,totalRoute=0;popSize=20;
 	 int chromoSize=points.size();
@@ -517,8 +589,7 @@ Population::Population(QPFWPVector points){
 	  qDebug()<<"Taking 2 parents with fitness:"<<bestfit<<bestfitOld;
 	
 	 return ;
-	}	
-	
+        }
 	
 	
 		/// returns an offspring from 2 parents
