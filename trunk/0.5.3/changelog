@@ -1,0 +1,78 @@
+ V 0.1.2 : (01-03-09)
++exporting Gcode
++Arc cut 
++circle cut with attack point
++Add edit mode (remove entities)
+merged path generation with Gcode creation
+Code cleanup
+
+V 1.2.3:
++ multipart G-code generation with silmple affine transformation(translation)
+
+V1.3:
++Path optimization through TSP GA
++Step by step animation
++Adopted numbering instead of arrows(make an option?)
+
+V1.4:
+-Mouse events are now within the QGraphics Item
+
+V 0.4.5:
+-changed all QLIst to QVector for performance
+
+
+0.5.2:
+-Tons of bug fixes;
++Animation amelioration in plasma mode
++GA optimisation
+
+V 0.5.3 pre:
++better Selection management
++better Part shapes drawing
++Icons
++french translation
+
+
+
+TODO sfor V 0.5.3:
+-Renumber loops
+-change leads out position manually
+-Solve cirle issue in gcode
+-solve treansformations issues
+-set default save extension to *.ngc
+-The last inserted part has to be automatailly selected
+- have to show the selected item in the part list view
+-Implement Undo moves
+-Add Manual Zoom IN Values
+
+V0.6:
+-Implement nesting
+-find a way to save sheets.
+- Detect shapes intersection, sheet overflow,...
+TODO:
+Detect internal/external contours.
+Huge Memory leack are occuring=> have to conviently code destructors of crap.
+wrap case circle is outline.
+enforce check for redendunt entities.
+Add post-processor support.
+add QTASSERT whenever we deal with a QList.
+switch from QList to QVector:
+
+Note:
+at() can be faster than operator[](), because it never causes a deep copy to occur.
+
+ void View::print()
+ {
+ #ifndef QT_NO_PRINTER
+     QPrinter printer;
+     QPrintDialog dialog(&printer, this);
+     if (dialog.exec() == QDialog::Accepted) {
+         QPainter painter(&printer);
+         graphicsView->render(&painter);
+     }
+ #endif
+ }
+ 
+ 
+ 
+ 
