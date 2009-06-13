@@ -149,13 +149,14 @@ void Sheet::timerEvent(QTimerEvent *event) {
 
     if (event->timerId() == timer.timerId()) {
 
-        qDebug()<<"timer trigger";
+        //qDebug()<<"timer trigger";
         emit progressionDone(currentLoop);
         ++currentLoop;
 
     } else {
         /// deal with other event...this way it will make it's way and propagate
-        qDebug()<<"other timer";
+        qDebug()<<"other timer"<<event->timerId();
+
         event->ignore();
     }
 
@@ -164,7 +165,7 @@ void Sheet::timerEvent(QTimerEvent *event) {
 void Sheet::moveTool(QPointF endP){
     //have to take into account the added margins
     endP+=QPointF(rectMarg/2,rectMarg/2);
-    qDebug()<<"Moving to point "<<endP;
+    //qDebug()<<"Moving to point "<<endP;
     /// @bug there's a crash in setPos when animating clearing then reanomating
     toolLine.setLine( QLineF(homePoint,endP));
     toolLine.setPen(toolPen);

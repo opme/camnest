@@ -20,7 +20,12 @@ try with different angular positions till the lead-in point is no longer contain
 
 /// @fixme: part ansi/6/14-299 is a total mess in leads!
 
+///@note have to intialize outside the class
+double Part::movePartVal=2;
 
+void Part::setMovePartVal(double val){
+    movePartVal=val;
+}
 
 /**
  * 
@@ -39,7 +44,7 @@ Part::Part(const QPainterPath path,QPFWPVector pointsList,QPPVector partPathsLis
     nbrClosedPath=0;
     nbrCircles=0;
     outlinePos=0;
-
+    tpLength=0;
     partLoops.clear();
     partLoopsOpt.clear();
     ptsVector=pointsList;
@@ -81,6 +86,8 @@ void Part::hoverEnterEvent ( QGraphicsSceneHoverEvent * event ) {
 
 void Part::hoverLeaveEvent ( QGraphicsSceneHoverEvent * event ) {
 /// @todo have to wait for 1 sec before hiding the cross
+    //timer.start(1000,scene());
+
     selecPix->setVisible(false);
 
 }
@@ -93,6 +100,7 @@ Part::Part(const Part &parentPart):QGraphicsItem(){
 
     partShape=parentPart.partShape;
     qtRect=parentPart.qtRect;
+    tpLength=parentPart.tpLength;
     /// @todo Before copying the shape have to take into account the outline leads
     partOutShape=parentPart.partOutShape;
     setAcceptHoverEvents(true);
@@ -101,8 +109,8 @@ Part::Part(const Part &parentPart):QGraphicsItem(){
     /// @note To ensure that moving the selecPix moves the hole part
     setHandlesChildEvents(true);
     /// we add the circle that will be displayed to select the part (like KDE file selection model)
-    selecPix=new selecItem(this);
-    selecPix->setPixmap(QPixmap (":iconsB/32x32/list-add.png"));
+    selecPix=new QGraphicsPixmapItem(QPixmap (":iconsB/32x32/list-add.png"),this);
+
     selecPix->setPos(this->boundingRect().center()-QPointF(16,16));
     //selecPix->setFlags(ItemIsSelectable | ItemIsMovable);
     selecPix->setVisible(true);
@@ -492,6 +500,7 @@ void Part::generateLeads(){
             leadPoint.setParentType(QPointFWithParent::LeadCertain);
             currentLoop->setLeadIn(leadPoint);
             currentLoop->setTouchPoint(touchPoint);
+            currentLoop->entities[0].setLeadTouch(touchPoint);
             templead=new Lead(currentLoop);
             qDebug()<<"Placing a circle lead point N°"<<i;
         }
@@ -543,6 +552,9 @@ void Part::generateLeads(){
     }
 }
 
+
+/// @ Todo include the outline point and find a way to keep it the last point int he GA cause route length vary greatly
+/// with and without it!
 void Part::optimizeRoute(){
     QPFWPVector bestRoute;
     qDebug()<<"Plasma mode="<<plasmaMode<<"With outline loop pos="<<outlinePoint.parentLoop;
@@ -594,14 +606,14 @@ void Part::optimizeRoute(){
             delete popu;
             bestRoute.clear();
             bestRoute<<bestRouteP1<<bestRouteP2<<bestRouteP3<<bestRouteP4;
-            qDebug()<<"taille avant"<<bestRoute.size();
+
         }
         Popu *popu=new Popu();
         /// Fixme work with refenrece to bestRoute
         bestRoute=popu->init(bestRoute,false);
-        delete popu;
-
-        ///isn't this done automatically as popu is in the if scope ?
+        tpLength=popu->totalRoute;
+        qDebug()<<"After GA:"<<tpLength;
+        delete popu; ///isn't this done automatically as popu is in the if scope ?
     }
     
     /// @todo separte this part as an indepandant function
@@ -625,9 +637,11 @@ void Part::optimizeRoute(){
         i++;
     }
 
+    /// needed to count the correct toolpath route length in plsams mode
+    double lastDist=0;
 
     if (plasmaMode){
-        /// HOW could this be possible as we havn't included it ?
+        // HOW could this be possible as we havn't included it ?
         if (!procededLoops.contains(outlinePoint.parentLoop)) {
             qDebug()<<"Finally the outline "<<outlinePoint.parentLoop<<partLoops.last()->loopNumber;
             partLoopsOpt.append(partLoops.at(outlinePos));
@@ -635,15 +649,12 @@ void Part::optimizeRoute(){
             ///HAve to stay the same
             //partLoopsOpt.last()->setNumber(
             partLoopsOpt.last()->setNumber(partLoopsOpt.size()-1);
+            lastDist=QLineF(bestRoute.last(),outlinePoint).length();
             bestRoute.append(outlinePoint);
         }
     }
-    else {
-        qDebug()<<"I'm  impossible !!";
-        //we must reappend the outlinepoint anyway!
-        ///useful for animation for now
-        bestRoute.append(outlinePoint);
-    }
+
+    tpLength+=lastDist;
     partLoops=partLoopsOpt;
 
 }
@@ -687,15 +698,7 @@ QVariant Part::itemChange(GraphicsItemChange change, const QVariant &value) {
 }
 
 
-selecItem::selecItem ( Part * par):QGraphicsPixmapItem(par){
-    parent=par;
-}
 
-
-
-void selecItem::mouseReleaseEvent(QGraphicsSceneMouseEvent *event) {
-    setPixmap(QPixmap (":iconsB/32x32/list-remove.png"));
-}
 
 void Part::mouseReleaseEvent(QGraphicsSceneMouseEvent *event) {
     /// When mouse button is released we get the transform matrix
@@ -762,12 +765,7 @@ void Part::keyPressEvent ( QKeyEvent * keyEvent ){
     }
     transform=sceneTransform();
 }
-///@note have to intialize outside the class
-double Part::movePartVal=2;
 
-void Part::setMovePartVal(double val){
-    movePartVal=val;
-}
 ///@todo show possible start poits (the user may want to change the lead point for route/space optimization)
 Loop::Loop(QGraphicsItem * parent):QGraphicsItem(parent){
     loopShape=QPainterPath();

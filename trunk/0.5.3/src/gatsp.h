@@ -113,6 +113,7 @@ public:
 	 
 	 /// 
 	 double totalRoute;
+ private:
 	 ///The population size : A common value is between 10 and 20 
 	 int popSize;
 	 int Max_iter;

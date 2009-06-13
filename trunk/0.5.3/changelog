@@ -31,16 +31,17 @@ V 0.5.3 pre:
 +better Part shapes drawing
 +Icons
 +french translation
++Better multipart rotation / translation
 
 
 
 TODO sfor V 0.5.3:
 -Renumber loops
 -change leads out position manually
--Solve cirle issue in gcode
--solve treansformations issues
+-Solve cirle issue in gcode (Done)
+-solve treansformations issues (Done)
 -set default save extension to *.ngc
--The last inserted part has to be automatailly selected
+-The last inserted part has to be automatailly selected(Done)
 - have to show the selected item in the part list view
 -Implement Undo moves
 -Add Manual Zoom IN Values

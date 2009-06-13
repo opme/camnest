@@ -220,23 +220,23 @@ void MainWindow::openPart(QString file) {
         if (creationClass->corrupted && dupliError) {
             //statusBar()->setPalette(errorText);
             partInfos->setPalette(errorText);
-            partInfos->setText(tr("Warning: The part contains Duplicate entities.It may be corrupted!"));
+            partInfos->setText(tr("Warning: The part contains Duplicate entities.It may be corrupted! \n"));
             //statusBar()->showMessage(tr("Warning: The part contains Duplicate entities.It may be corrupted!"));
         }
         else {
              partInfos->setPalette(infoText);
-             partInfos->setText(tr("Dimensions : ")+(QString("%1").arg(contRect.height())+ " x " + (QString("%1").arg(contRect.width()))));
+             partInfos->setText(tr("Dimensions : ")+(QString("%1").arg(contRect.height())+ " x " + (QString("%1").arg(contRect.width())))+ (tr(" --- Route Length: ")+(QString("%1").arg(piece->tpLength))));
         }
         if (piece->errorsFound && plasmaMode) {
            // statusBar()->setPalette(errorText);
             partInfos->setPalette(errorText);
-            partInfos->setText(partInfos->text()+tr(" || Warning: The part contains Too small Radius that can't be cut!"));
+            partInfos->setText(partInfos->text()+tr(" \n Warning: The part contains Too small Radius that can't be cut!"));
             //statusBar()->showMessage(tr("Warning: The part contains Too small Radius that can't be cut!"));
         }
         if (piece->openLoopError && openLoopError) {
             //statusBar()->setPalette(errorText);
             partInfos->setPalette(errorText);
-            partInfos->setText(partInfos->text()+tr("||  The part contains Open Loops!"));
+            partInfos->setText(partInfos->text()+tr("\n  The part contains Open Loops!"));
             //statusBar()->showMessage(tr("Warning: The part contains Open Loops!"));
         }
         //connect((QObject*)piece,SIGNAL(progressionStep()),this,SLOT(progressionDone()));
@@ -356,6 +356,9 @@ bool MainWindow::saveGCode() {
     GCode partGCode (& file);
     partGCode.writeHeader(fileName);
 
+
+    /// @todo; HIGH PRIORITY : REWRITE THIS HOLE SECTION and use loops Leads,touchpoint,...
+
     qDebug()<<"Writing the Gcode of "<<parts.size()<<"parts";
     for (int j=0; j<parts.size();j++){
         ///qDebug()<<"Part endPoints"<<parts.at(j)->endPointslist;
@@ -422,7 +425,7 @@ void MainWindow::clearScene() {
 
 void MainWindow::setRotAngle(){
     bool ok;
-    int i=QInputDialog::getInteger(0,tr("Set rotation angle"),QString("Angle :"), 90, 0, 100, 1, &ok);
+    int i=QInputDialog::getInteger(0,tr("Set rotation angle"),QString("Angle :"), 90, 0, 360, 1, &ok);
     if (ok) rotateParts(i);
 }
 
@@ -714,7 +717,7 @@ void MainWindow::createDockWindows(){
 
 
     partInfos=new QLabel(previewHS);
-    partInfos->setMaximumSize(3000,20);
+    partInfos->setMaximumSize(3000,50);
     partInfos->setAlignment(Qt::AlignHCenter);
     partInfos->setToolTip(tr("Show the part dimension (HeigthxWidth) and errors messages if any"));
     previewHS->setOrientation(Qt::Vertical);
@@ -961,7 +964,7 @@ void MainWindow::nameObjects(){
 }
 
 MainWindow::MainWindow(){
-    setWindowTitle(tr("CamNest V0.5.3 debug"));
+    setWindowTitle(tr("CamNest V0.5.3 alpha"));
 
 
     /// @todo find a way to put qactions for docks after creating GUI compoment like toolbars and menus.
@@ -1053,5 +1056,5 @@ void MainWindow::about()
 {
 
     QMessageBox::about(this, tr("About CamNest"),
-                       tr("<b>CamNest</b> Dxf Viewer and G-code generation software"));
+                       tr("<b>CamNest</b> DXF file Viewer and G-code generation software"));
 }

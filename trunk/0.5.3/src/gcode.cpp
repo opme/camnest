@@ -53,10 +53,8 @@ qreal radius;
 	 ///the end point of an arc
 	 QPointFWithParent  endPoint(0,0);
 	 /// a point in a line entinty weiither the start or end (becomle the start in a arc one)
-	 QPointFWithParent point(0,0);
-	 ///the center of a circle
-	 QPointFWithParent  circle(0,0);
-	 ///bug: a problem with qlist dimension size pos+2 to solve
+         QPointFWithParent point(0,0);
+
 	 
 	 qDebug()<<"Writing the G-code of a loop composed of "<<closedLoop.size()<<"entities";
 	 /// we first go to the lead point if any
@@ -75,8 +73,7 @@ qreal radius;
 				 else{
 					 feedRateMove(point,0);
 					}
-				 ArcCut(endPoint,0, (endPoint.center-point),0,endPoint.cWise);
-				
+                                 ArcCut(endPoint,0, partTrans.map(endPoint.center)-partTrans.map(point),0,endPoint.cWise);
 				///@note Have to skip the other point definig the arc
 				 pos=pos+2;
 				 //qDebug()<<"dealing with an arc rad="<<endPoint.parentRadius<<"center="<<endPoint.centerX<<endPoint.centerY;
@@ -89,11 +86,13 @@ qreal radius;
 				 circleCenter=point;
 				 radius=point.parentRadius;
 				 if (plasmaMode) { 
-					 ///@todo make this homogene with genrated lead @bug should get the point from lead
-					 attackPoint=point+QPointF(radius,0);
-					 feedRateMove(attackPoint);
+                                         /// @todo Get the stored leadTouch
+                                         attackPoint=point.leadTouch;//;point+QPointF(radius,0);
+                                         feedRateMove(attackPoint);
+                                         
 					  // now that we are on the circle cut it
-					 ArcCut(attackPoint,0,circleCenter-attackPoint,0);
+                                         ArcCut(attackPoint,0, partTrans.map(circleCenter)-partTrans.map(attackPoint),0);
+
 					}
 				else {
 					 attackPoint=point+QPointF(radius,0);
@@ -123,20 +122,20 @@ qreal radius;
 	}	
 	
 	 void GCode::ArcCut (QPointF p,qreal Z,QPointF p2,qreal radius,bool cw){
-         //p2=partTrans.map(p2);
-	 p=partTrans.map(p);
+
+         p=partTrans.map(p);
 	/// p2=partTrans.map(p2);
-	 if (!cw){
+         if (!cw){
 		 appendCode("G03");
 		} 
-	 else{
+	 else{            
 		 appendCode("G02");
 		}
 	 appendNumCode ("X",p.x());
 	 appendNumCode ("Y",p.y());
 	 if (radius==0) {
-		 appendNumCode ("I",p2.x());
-		 appendNumCode ("J",p2.y());
+                 appendNumCode ("I",p2.x());
+                 appendNumCode ("J",p2.y());
 	    }
 		else{
 		 appendNumCode ("R",radius);

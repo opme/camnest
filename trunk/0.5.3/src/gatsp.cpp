@@ -40,7 +40,7 @@ int mutNbr;
 
 	 int i=0;
          chromoSize=points.size();
-          qDebug()<<"Creating initial Rpop";
+         // qDebug()<<"Creating initial Rpop";
 	 //create a population of @see popSize chromosome. The chromosome elements are taken randomly from parent @see points
 	 while (i<popSize){
 		 Chromosome member;
@@ -68,7 +68,7 @@ int mutNbr;
                      lastRoute=content[0].getRouteLength();
                      sameVal=0;
                  }
-                 qDebug()<<sameVal;
+                 //qDebug()<<sameVal;
                  //qDebug()<< content[0].getRouteLength();
 		}
 
@@ -118,7 +118,7 @@ void Chromosome::setElements(QPFWPVector points,int size){
 			}
 		}
        // qDebug()<<"Best generation"<< curGen <<"length:"<<content[0].routeLength;
-                qDebug()<<content[0].routeLength;
+               totalRoute=content[0].routeLength;
 	}
 
 /// @todo The only thing we nedd from QPOintWithParent is the ParentLoop!!Imporvo this by overloading it
